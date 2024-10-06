@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "mmo_net.h": "c",
+        "net.h": "c"
+    }
+}
