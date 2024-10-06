@@ -1,4 +1,4 @@
-SRC := src/main.c src/net.c
+SRC := src/core.c src/net.c src/main.c
 
-mmo: src/main.c
-	clang-19 -std=c23 -Wall -Wextra -o build/mmo ${SRC}
+mmo:
+	clang-19 -std=c23 -Wall -Wextra -o bin/mmo ${SRC}
