@@ -3,7 +3,7 @@
 
 #include <mmo/net.h>
 
-#define PORT 23
+#define PORT 2000
 
 int main() {
     mmo_server_t server;
@@ -12,37 +12,17 @@ int main() {
 
     if (res.status != MMO_OK) {
         printf("%s\n", res.msg);
-        mmo_result_free(&res);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     printf("Server listening on port %d\n", PORT);
 
     while (1) {
-        int poll_result = poll(fds, 1, -1);
+        mmo_result_t res = mmo_server_update(&server);
 
-        if (poll_result == -1) {
-            perror("Failed to poll");
-            break;
-        }
-
-        if (fds[0].revents & POLLIN) {
-            struct sockaddr_in client_addr;
-            int addr_len = sizeof(client_addr);
-
-            int client_sock = accept(server_sock, (struct sockaddr *)&client_addr, (socklen_t *)&addr_len);
-
-            if (client_sock == -1) {
-                perror("Failed to accept client connection");
-                continue;
-            }
-
-            printf("New client connected: %d\n", client_sock);
-
-            send(client_sock, "Hello World from Bu's Telnet server", 36, 0);
-            close(client_sock);
+        if (res.status == MMO_ERR) {
+            printf("Failed to update server: %s\n", res.msg);
+            return -1;
         }
     }
-
-    close(server_sock);
 }

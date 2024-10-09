@@ -6,7 +6,7 @@
 
 #define MMO_RESULT_MAX_LEN 512
 
-mmo_result_t mmo_result_fmt(mmo_status_t status, const char *fmt, ...) {
+mmo_result_t mmo_result_new(mmo_status_t status, const char *fmt, ...) {
     if (!fmt) {
         return (mmo_result_t){ .status = status, .msg = NULL };
     }

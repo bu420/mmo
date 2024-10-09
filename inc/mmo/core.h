@@ -4,12 +4,13 @@
 #include <string.h>
 #include <errno.h>
 
-#define MMO_ERRNO strerror_r(errno)
+/* Beware! Not thread safe. */
+#define MMO_ERRNO strerror(errno)
 
 typedef enum mmo_status_e {
     MMO_OK,
     MMO_ERR,
-    MMO_NO_INCOMING_CLIENT
+    MMO_ACCEPT_ERR
 } mmo_status_t;
 
 typedef struct mmo_result_s {
