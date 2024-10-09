@@ -8,14 +8,14 @@
 #include <sys/poll.h>
 #include <sys/socket.h>
 
-static mmo_result_t _set_nonblocking(int sock) {
-    int flags = fcntl(sock, F_GETFL, 0);
+static mmo_result_t _set_nonblocking(int socket) {
+    int flags = fcntl(socket, F_GETFL, 0);
     
     if (flags == -1) {
         return mmo_result_new(MMO_ERR, "Failed to set socket in non-blocking mode: fcntl(): %s", MMO_ERRNO);
     }
 
-    if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1) {
+    if (fcntl(socket, F_SETFL, flags | O_NONBLOCK) == -1) {
         return mmo_result_new(MMO_ERR, "Failed to set socket in non-blocking mode: fcntl(): %s", MMO_ERRNO);
     }
 
@@ -75,12 +75,11 @@ mmo_result_t mmo_server_listen(mmo_server_t *server, int port) {
 mmo_result_t mmo_server_update(mmo_server_t *server) {
     /* Poll for events. Wait indefinitely (timeout = -1) until a client joins.
        As soon as there is one or more connected clients, 
-       set timeout to 2 ms (return immediately, non-blocking). 
+       set timeout to 1 ms (return almost immediately, non-blocking). 
        socket_count = 1 means no connected clients. */
 
-    int timeout = server->socket_count == 1 ? -1 : 2;
+    int timeout = server->socket_count == 1 ? -1 : 1;
 
-    printf("Clients: %d\n", server->socket_count);
     int sockets_with_events = poll(server->sockets, server->socket_count, timeout);
 
     if (sockets_with_events == -1) {
@@ -103,6 +102,12 @@ mmo_result_t mmo_server_update(mmo_server_t *server) {
                 if (socket == -1) {
                     continue;
                 }
+
+                /* Set socket to non-blocking mode. */
+
+                /*if (_set_nonblocking(socket).status != MMO_OK) {
+                    continue;
+                }*/
 
                 /* Add socket to array. */
 

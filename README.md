@@ -3,10 +3,10 @@ MMORPG over Telnet written in C23.
 
 ## Connect
 Use a Telnet client to connect to server. 
-Windows' built-in Telnet client does not support some key features and will not work.
-Instead use something like [PuTTY](https://www.putty.org/). 
+Do not use Windows' built-in `telnet.exe` as it supports neither UTF-8 nor 24-bit color.
+A good client for Windows is [PuTTY](https://www.putty.org/). 
 ```
-> telnet 127.0.0.1
+> telnet 95.217.10.143 2000
 ```
 
 ## Build
