@@ -18,7 +18,12 @@ int main() {
     printf("Server listening on port %d\n", PORT);
 
     while (1) {
-        mmo_result_t res = mmo_server_update(&server);
+        /* Update game. */
+
+        
+
+        /* Poll for socket events. */
+        mmo_result_t res = mmo_server_poll(&server);
 
         if (res.status == MMO_ERR) {
             printf("Failed to update server: %s\n", res.msg);

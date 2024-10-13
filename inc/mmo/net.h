@@ -1,14 +1,19 @@
 #ifndef MMO_NET_H
 #define MMO_NET_H
 
-#ifndef MMO_MAX_CLIENTS
-#define MMO_MAX_CLIENTS 100
-#endif
-
 #include <stdio.h>
 #include <sys/poll.h>
 
 #include <mmo/core.h>
+
+/* Ticks per second. */
+#ifndef MMO_SERVER_TPS
+#define MMO_SERVER_TPS 10
+#endif
+
+#ifndef MMO_MAX_CLIENTS
+#define MMO_MAX_CLIENTS 100
+#endif
 
 typedef int mmo_socket_t;
 
@@ -23,9 +28,7 @@ typedef struct mmo_server_s {
    client connections. */
 mmo_result_t mmo_server_listen(mmo_server_t *server, int port);
 
-/* Updating server involves accepting and closing client connections.
-   If no clients are connected and there's no activity this function
-   will block indefinitely to save CPU resources. */
-mmo_result_t mmo_server_update(mmo_server_t *server);
+/* Poll for events. Receives data and accepts/closes connections. */
+mmo_result_t mmo_server_poll(mmo_server_t *server, int tps_remaining_time);
 
 #endif

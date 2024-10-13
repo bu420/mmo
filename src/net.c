@@ -72,18 +72,20 @@ mmo_result_t mmo_server_listen(mmo_server_t *server, int port) {
     return mmo_result_new(MMO_OK, NULL);
 }
 
-mmo_result_t mmo_server_update(mmo_server_t *server) {
-    /* Poll for events. Wait indefinitely (timeout = -1) until a client joins.
-       As soon as there is one or more connected clients, 
-       set timeout to 1 ms (return almost immediately, non-blocking). 
-       socket_count = 1 means no connected clients. */
+mmo_result_t mmo_server_poll(mmo_server_t *server) {
+    /* Poll for socket events (blocking).
+       While no client sockets are present (socket_count = 1) wait indefinitely (-1).
+       Otherwise wait for the duration specified in MMO_SERVER_TPS. */
 
-    int timeout = server->socket_count == 1 ? -1 : 1;
+    int timeout = server->socket_count == 1 ? -1 : 1000 / MMO_SERVER_TPS;
 
-    int sockets_with_events = poll(server->sockets, server->socket_count, timeout);
-
-    if (sockets_with_events == -1) {
+    switch (poll(server->sockets, server->socket_count, timeout)) {
+    case -1:
         return mmo_result_new(MMO_ERR, "Failed to poll: %s", MMO_ERRNO);
+
+    /* Timeout. No events. */
+    case 0:
+        return mmo_result_new(MMO_OK, NULL);
     }
 
     /* Check if a socket is ready to read. */
@@ -103,19 +105,13 @@ mmo_result_t mmo_server_update(mmo_server_t *server) {
                     continue;
                 }
 
-                /* Set socket to non-blocking mode. */
-
-                /*if (_set_nonblocking(socket).status != MMO_OK) {
-                    continue;
-                }*/
-
                 /* Add socket to array. */
 
                 server->sockets[server->socket_count].fd = socket;
                 server->sockets[server->socket_count].events = POLLIN;
                 server->socket_count += 1;
 
-                const char welcome[] = "Welcome to Bu's Telnet server\r\n>";
+                const char welcome[] = "Welcome to \x1b[38;2;255;0;100mBu's \x1b[38;2;0;100;200mTelnet server\r\n>";
                 send(socket, welcome, strlen(welcome), 0);
 
                 char ip[INET_ADDRSTRLEN];
@@ -145,8 +141,11 @@ mmo_result_t mmo_server_update(mmo_server_t *server) {
                 /* Broadcast data to everyone else. */
 
                 for (int j = 0; j < server->socket_count; j += 1) {
-                    if (server->sockets[j].fd != server->listener && server->sockets[j].fd != server->sockets[i].fd) {
-                        send(server->sockets[j].fd, bytes_received, num_bytes_received, 0);
+                    mmo_socket_t receiver = server->sockets[j].fd;
+                    mmo_socket_t sender = server->sockets[i].fd;
+
+                    if (receiver != server->listener && receiver != sender) {
+                        send(receiver, bytes_received, num_bytes_received, 0);
                     }
                 }
             }
