@@ -1,4 +1,5 @@
-SRC := src/core.c src/net.c src/main.c
+SRC := src/main.c src/net.c
+LIB := -lm
 
 mmo:
-	clang-19 -std=c23 -Iinc -Wall -Wextra -o bin/mmo ${SRC}
+	clang-19 -std=c23 -Iinc -Wall -Wextra -Wconversion -o bin/mmo ${SRC} ${LIB}

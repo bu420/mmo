@@ -1,6 +1,8 @@
 #include <mmo/net.h>
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -8,27 +10,34 @@
 #include <sys/poll.h>
 #include <sys/socket.h>
 
-static mmo_result_t _set_nonblocking(int socket) {
+static int mmo_socket_set_blocking(mmo_socket_t socket, bool blocking) {
     int flags = fcntl(socket, F_GETFL, 0);
     
     if (flags == -1) {
-        return mmo_result_new(MMO_ERR, "Failed to set socket in non-blocking mode: fcntl(): %s", MMO_ERRNO);
+        return -1;
     }
 
-    if (fcntl(socket, F_SETFL, flags | O_NONBLOCK) == -1) {
-        return mmo_result_new(MMO_ERR, "Failed to set socket in non-blocking mode: fcntl(): %s", MMO_ERRNO);
+    if (blocking) {
+        flags &= ~O_NONBLOCK;
+    }
+    else {
+        flags |= O_NONBLOCK;
     }
 
-    return mmo_result_new(MMO_OK, NULL);
+    if (fcntl(socket, F_SETFL, flags) == -1) {
+        return -1;
+    }
+
+    return 0;
 }
 
-mmo_result_t mmo_server_listen(mmo_server_t *server, int port) {
+int mmo_server_listen(mmo_server_t *server, uint16_t port) {
     /* Create socket. */
 
     server->listener = socket(AF_INET, SOCK_STREAM, 0);
 
     if (server->listener == -1) {
-        return mmo_result_new(MMO_ERR, "Failed to create socket: %s", MMO_ERRNO);
+        return -1;
     }
 
     /* Allow socket to be reusable. Avoids address-in-use error. */
@@ -38,10 +47,8 @@ mmo_result_t mmo_server_listen(mmo_server_t *server, int port) {
 
     /* Set socket to non-blocking mode. */
 
-    mmo_result_t res = _set_nonblocking(server->listener);
-
-    if (res.status != MMO_OK) {
-        return res;
+    if (mmo_socket_set_blocking(server->listener, false) == -1) {
+        return -1;
     }
 
     /* Bind socket. */
@@ -53,14 +60,14 @@ mmo_result_t mmo_server_listen(mmo_server_t *server, int port) {
 
     if (bind(server->listener, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         close(server->listener);
-        return mmo_result_new(MMO_ERR, "Failed to bind socket: %s", MMO_ERRNO);
+        return -1;
     }
 
     /* Listen on socket. */
 
     if (listen(server->listener, MMO_MAX_CLIENTS) == -1) {
         close(server->listener);
-        return mmo_result_new(MMO_ERR, "Failed to listen on socket: %s", MMO_ERRNO);
+        return -1;
     }
 
     /* Add listener socket to polls. */
@@ -69,23 +76,24 @@ mmo_result_t mmo_server_listen(mmo_server_t *server, int port) {
     server->sockets[0].events = POLLIN;
     server->socket_count = 1;
 
-    return mmo_result_new(MMO_OK, NULL);
+    return 0;
 }
 
-mmo_result_t mmo_server_poll(mmo_server_t *server) {
-    /* Poll for socket events (blocking).
+int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
+    /* Poll for socket events. poll() is blocking and becomes essentially the
+       server's sleep function.
        While no client sockets are present (socket_count = 1) wait indefinitely (-1).
        Otherwise wait for the duration specified in MMO_SERVER_TPS. */
 
-    int timeout = server->socket_count == 1 ? -1 : 1000 / MMO_SERVER_TPS;
+    int timeout = server->socket_count == 1 ? -1 : tick_remaining_millisecs;
 
-    switch (poll(server->sockets, server->socket_count, timeout)) {
+    switch (poll(server->sockets, (nfds_t)server->socket_count, timeout)) {
     case -1:
-        return mmo_result_new(MMO_ERR, "Failed to poll: %s", MMO_ERRNO);
+        return -1;
 
     /* Timeout. No events. */
     case 0:
-        return mmo_result_new(MMO_OK, NULL);
+        return 0;
     }
 
     /* Check if a socket is ready to read. */
@@ -111,7 +119,7 @@ mmo_result_t mmo_server_poll(mmo_server_t *server) {
                 server->sockets[server->socket_count].events = POLLIN;
                 server->socket_count += 1;
 
-                const char welcome[] = "Welcome to \x1b[38;2;255;0;100mBu's \x1b[38;2;0;100;200mTelnet server\r\n>";
+                const char welcome[] = "Welcome to \x1b[38;2;255;0;100mBu's \x1b[38;2;0;100;200mTelnet server\x1b[0m\r\n>";
                 send(socket, welcome, strlen(welcome), 0);
 
                 char ip[INET_ADDRSTRLEN];
@@ -120,7 +128,7 @@ mmo_result_t mmo_server_poll(mmo_server_t *server) {
             /* Existing connection. */
             else {
                 char bytes_received[256];
-                int num_bytes_received = recv(server->sockets[i].fd, bytes_received, sizeof(bytes_received), 0);
+                int num_bytes_received = (int)recv(server->sockets[i].fd, bytes_received, sizeof(bytes_received), 0);
 
                 /* Close and delete client socket on disconnect or error. */
                 if (num_bytes_received <= 0) {
@@ -145,12 +153,23 @@ mmo_result_t mmo_server_poll(mmo_server_t *server) {
                     mmo_socket_t sender = server->sockets[i].fd;
 
                     if (receiver != server->listener && receiver != sender) {
-                        send(receiver, bytes_received, num_bytes_received, 0);
+                        /* Set socket to non-blocking before sending data and
+                           after set it back to blocking. */
+
+                        if (mmo_socket_set_blocking(receiver, false) == -1) {
+                            return -1;
+                        }
+
+                        send(receiver, bytes_received, (size_t)num_bytes_received, 0);
+
+                        if (mmo_socket_set_blocking(receiver, true) == -1) {
+                            return -1;
+                        }
                     }
                 }
             }
         }
     }
 
-    return mmo_result_new(MMO_OK, NULL);
+    return 0;
 }

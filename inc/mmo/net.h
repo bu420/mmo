@@ -1,12 +1,9 @@
 #ifndef MMO_NET_H
 #define MMO_NET_H
 
-#include <stdio.h>
+#include <stdint.h>
 #include <sys/poll.h>
 
-#include <mmo/core.h>
-
-/* Ticks per second. */
 #ifndef MMO_SERVER_TPS
 #define MMO_SERVER_TPS 10
 #endif
@@ -26,9 +23,9 @@ typedef struct mmo_server_s {
 
 /* Create server with a non-blocking socket listening for incoming
    client connections. */
-mmo_result_t mmo_server_listen(mmo_server_t *server, int port);
+int mmo_server_listen(mmo_server_t *server, uint16_t port);
 
 /* Poll for events. Receives data and accepts/closes connections. */
-mmo_result_t mmo_server_poll(mmo_server_t *server, int tps_remaining_time);
+int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs);
 
 #endif

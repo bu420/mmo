@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #include <mmo/net.h>
 
@@ -8,10 +10,8 @@
 int main() {
     mmo_server_t server;
 
-    mmo_result_t res = mmo_server_listen(&server, PORT);
-
-    if (res.status != MMO_OK) {
-        printf("%s\n", res.msg);
+    if (mmo_server_listen(&server, PORT) == -1) {
+        printf("mmo_server_listen()%s\n", strerror(errno));
         return -1;
     }
 
@@ -23,10 +23,9 @@ int main() {
         
 
         /* Poll for socket events. */
-        mmo_result_t res = mmo_server_poll(&server);
 
-        if (res.status == MMO_ERR) {
-            printf("Failed to update server: %s\n", res.msg);
+        if (mmo_server_poll(&server, 1000 / MMO_SERVER_TPS) == -1) {
+            printf("mmo_server_poll()%s\n", strerror(errno));
             return -1;
         }
     }
