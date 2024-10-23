@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "run makefile",
+            "type": "shell",
+            "command": "make",
+            "args": ["debug"]
+        }
+    ]
+}

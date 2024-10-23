@@ -70,24 +70,31 @@ int mmo_server_listen(mmo_server_t *server, uint16_t port) {
         return -1;
     }
 
-    /* Add listener socket to polls. */
-
-    server->sockets[0].fd = server->listener;
-    server->sockets[0].events = POLLIN;
-    server->socket_count = 1;
-
     return 0;
 }
 
 int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
-    /* Poll for socket events. poll() is blocking and becomes essentially the
-       server's sleep function.
-       While no client sockets are present (socket_count = 1) wait indefinitely (-1).
-       Otherwise wait for the duration specified in MMO_SERVER_TPS. */
+    /* Setup poll structure. Set first element to listener socket,
+       fill rest with client sockets. */
 
-    int timeout = server->socket_count == 1 ? -1 : tick_remaining_millisecs;
+    struct pollfd sockets[MMO_MAX_CLIENTS + 1];
+    int num_sockets = server->num_clients + 1;
 
-    switch (poll(server->sockets, (nfds_t)server->socket_count, timeout)) {
+    sockets[0].fd = server->listener;
+    sockets[0].events = POLLIN;
+
+    for (int i = 0; i < server->num_clients; i += 1) {
+        sockets[1 + i].fd = server->clients[i].socket;
+        sockets[1 + i].events = POLLIN;
+    }
+    
+    /* Poll for socket events. poll() blocks and becomes server's 
+       sleep function. While no clients wait indefinitely (-1), 
+       otherwise wait for remaining tick time. */
+
+    int timeout = server->num_clients == 0 ? -1 : tick_remaining_millisecs;
+
+    switch (poll(sockets, (nfds_t)num_sockets, timeout)) {
     case -1:
         return -1;
 
@@ -96,12 +103,13 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
         return 0;
     }
 
-    /* Check if a socket is ready to read. */
+    /* Check if listener socket has been notified of new connection.
+       Check if client socket has received data. */
     
-    for (int i = 0; i < server->socket_count; i += 1) {
-        if (server->sockets[i].revents & POLLIN) {
+    for (int i = 0; i < num_sockets; i += 1) {
+        if (sockets[i].revents & POLLIN) {
             /* New connection. */
-            if (server->sockets[i].fd == server->listener) {
+            if (sockets[i].fd == server->listener) {
                 /* Accept connection. */
 
                 struct sockaddr_storage addr;
@@ -113,58 +121,84 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
                     continue;
                 }
 
+                /* Set socket to non-blocking mode. */
+
+                if (mmo_socket_set_blocking(socket, false) == -1) {
+                    return -1;
+                }
+
+                /* If too many clients, reject socket with message. */
+
+                if (server->num_clients == MMO_MAX_CLIENTS) {
+                    const char response[] = "Connection refused. Full game.";
+
+                    send(socket, response, strlen(response), 0);
+
+                    close(socket);
+
+                    continue;
+                }
+
                 /* Add socket to array. */
 
-                server->sockets[server->socket_count].fd = socket;
-                server->sockets[server->socket_count].events = POLLIN;
-                server->socket_count += 1;
+                mmo_client_t client;
+                client.socket = socket;
+                client.in = NULL;
+                client.in_size = 0;
+                client.out = NULL;
+                client.out_size = 0;
+
+                server->clients[server->num_clients] = client;
+                server->num_clients += 1;
 
                 const char welcome[] = "Welcome to \x1b[38;2;255;0;100mBu's \x1b[38;2;0;100;200mTelnet server\x1b[0m\r\n>";
                 send(socket, welcome, strlen(welcome), 0);
 
                 char ip[INET_ADDRSTRLEN];
-                printf("New connection from %s\n", inet_ntop(addr.ss_family, &(((struct sockaddr_in *)&addr)->sin_addr), ip, INET_ADDRSTRLEN));
+                printf("New connection from %s.\n", inet_ntop(addr.ss_family, &(((struct sockaddr_in *)&addr)->sin_addr), ip, INET_ADDRSTRLEN));
             }
             /* Existing connection. */
             else {
-                char bytes_received[256];
-                int num_bytes_received = (int)recv(server->sockets[i].fd, bytes_received, sizeof(bytes_received), 0);
+                char bytes[256];
+                int num_bytes = (int)recv(sockets[i].fd, bytes, sizeof(bytes), 0);
 
-                /* Close and delete client socket on disconnect or error. */
-                if (num_bytes_received <= 0) {
-                    if (num_bytes_received == 0) {
-                        printf("Connection closed.\n");
-                    }
-                    
-                    close(server->sockets[i].fd);
+                /* Client disconnected gracefully. */
+                if (num_bytes == 0) {
+                    printf("Connection closed.\n");
 
-                    /* Replace this socket with last socket. */
+                    close(sockets[i].fd);
 
-                    server->sockets[i] = server->sockets[server->socket_count - 1];
-                    server->socket_count -= 1;
+                    /* Simple remove. Replace element with last element in array. 
+                       Client index is 1 less due to extra element (listener socket) 
+                       prepended to socket polling array. */
+
+                    sockets[i] = sockets[num_sockets - 1];
+                    num_sockets -= 1;
+
+                    free(server->clients[i - 1].in);
+                    free(server->clients[i - 1].out);
+
+                    server->clients[i - 1] = server->clients[server->num_clients - 2];
+                    server->num_clients -= 1;
 
                     continue;
+                }
+
+                /* Error. */
+                if (num_bytes < 0) {
+                    close(sockets[i].fd);
+                    
+                    return -1;
                 }
                 
                 /* Broadcast data to everyone else. */
 
-                for (int j = 0; j < server->socket_count; j += 1) {
-                    mmo_socket_t receiver = server->sockets[j].fd;
-                    mmo_socket_t sender = server->sockets[i].fd;
+                for (int j = 1; j < num_sockets; j += 1) {
+                    mmo_socket_t receiver = sockets[j].fd;
+                    mmo_socket_t sender = sockets[i].fd;
 
-                    if (receiver != server->listener && receiver != sender) {
-                        /* Set socket to non-blocking before sending data and
-                           after set it back to blocking. */
-
-                        if (mmo_socket_set_blocking(receiver, false) == -1) {
-                            return -1;
-                        }
-
-                        send(receiver, bytes_received, (size_t)num_bytes_received, 0);
-
-                        if (mmo_socket_set_blocking(receiver, true) == -1) {
-                            return -1;
-                        }
+                    if (receiver != sender) {
+                        send(receiver, bytes, (size_t)num_bytes, 0);
                     }
                 }
             }

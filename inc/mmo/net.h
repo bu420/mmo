@@ -2,7 +2,7 @@
 #define MMO_NET_H
 
 #include <stdint.h>
-#include <sys/poll.h>
+#include <stddef.h>
 
 #ifndef MMO_SERVER_TPS
 #define MMO_SERVER_TPS 10
@@ -14,11 +14,23 @@
 
 typedef int mmo_socket_t;
 
+typedef struct mmo_client_s {
+    mmo_socket_t socket;
+
+    /* Received data ready to be parsed. */
+    char *in;
+    size_t in_size;
+
+    /* Outgoing data to be sent. */
+    char *out;
+    size_t out_size;
+} mmo_client_t;
+
 typedef struct mmo_server_s {
     mmo_socket_t listener;
 
-    struct pollfd sockets[MMO_MAX_CLIENTS];
-    int socket_count;
+    mmo_client_t clients[MMO_MAX_CLIENTS];
+    int num_clients;
 } mmo_server_t;
 
 /* Create server with a non-blocking socket listening for incoming
