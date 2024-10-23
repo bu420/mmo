@@ -32,6 +32,8 @@ static int mmo_socket_set_blocking(mmo_socket_t socket, bool blocking) {
 }
 
 int mmo_server_listen(mmo_server_t *server, uint16_t port) {
+    server->num_clients = 0;
+    
     /* Create socket. */
 
     server->listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -89,7 +91,7 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
     }
     
     /* Poll for socket events. poll() blocks and becomes server's 
-       sleep function. While no clients wait indefinitely (-1), 
+       sleep function. While no clients: wait indefinitely (-1), 
        otherwise wait for remaining tick time. */
 
     int timeout = server->num_clients == 0 ? -1 : tick_remaining_millisecs;
@@ -168,7 +170,7 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
 
                     close(sockets[i].fd);
 
-                    /* Simple remove. Replace element with last element in array. 
+                    /* Simple remove. Replace element with last tracked element in array. 
                        Client index is 1 less due to extra element (listener socket) 
                        prepended to socket polling array. */
 
@@ -178,7 +180,7 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
                     free(server->clients[i - 1].in);
                     free(server->clients[i - 1].out);
 
-                    server->clients[i - 1] = server->clients[server->num_clients - 2];
+                    server->clients[i - 1] = server->clients[server->num_clients - 1];
                     server->num_clients -= 1;
 
                     continue;

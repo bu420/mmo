@@ -4,13 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#ifndef MMO_SERVER_TPS
-#define MMO_SERVER_TPS 10
-#endif
-
-#ifndef MMO_MAX_CLIENTS
-#define MMO_MAX_CLIENTS 100
-#endif
+#define MMO_MAX_CLIENTS 2
 
 typedef int mmo_socket_t;
 
@@ -33,11 +27,11 @@ typedef struct mmo_server_s {
     int num_clients;
 } mmo_server_t;
 
-/* Create server with a non-blocking socket listening for incoming
-   client connections. */
+/* Create server. Listens for incoming connections. Non-blocking. */
 int mmo_server_listen(mmo_server_t *server, uint16_t port);
 
-/* Poll for events. Receives data and accepts/closes connections. */
+/* Poll for events. Receives data and accepts/closes connections.
+   Blocking for the duration of tick_remaining_millisecs. */
 int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs);
 
 #endif

@@ -6,12 +6,12 @@
 #include <mmo/net.h>
 
 #define PORT 2000
+#define TPS 10
 
 int main() {
     mmo_server_t server;
 
     if (mmo_server_listen(&server, PORT) == -1) {
-        printf("mmo_server_listen()%s\n", strerror(errno));
         return -1;
     }
 
@@ -24,8 +24,7 @@ int main() {
 
         /* Poll for socket events. */
 
-        if (mmo_server_poll(&server, 1000 / MMO_SERVER_TPS) == -1) {
-            printf("mmo_server_poll()%s\n", strerror(errno));
+        if (mmo_server_poll(&server, 1000 / TPS) == -1) {
             return -1;
         }
     }
