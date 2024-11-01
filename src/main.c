@@ -15,7 +15,7 @@ int main() {
         return -1;
     }
 
-    printf("Server listening on port %d\n", PORT);
+    printf("Server listening on port %d.\n", PORT);
 
     while (1) {
         /* Update game. */

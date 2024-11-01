@@ -132,7 +132,7 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
                 /* If too many clients, reject socket with message. */
 
                 if (server->num_clients == MMO_MAX_CLIENTS) {
-                    const char response[] = "Connection refused. Full game.";
+                    const char response[] = "Connection refused. Server is full.";
 
                     send(socket, response, strlen(response), 0);
 
@@ -170,17 +170,17 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
 
                     close(sockets[i].fd);
 
-                    /* Simple remove. Replace element with last tracked element in array. 
-                       Client index is 1 less due to extra element (listener socket) 
-                       prepended to socket polling array. */
+                    /* Simple remove. Replace element with last tracked element in array. */
 
                     sockets[i] = sockets[num_sockets - 1];
                     num_sockets -= 1;
 
-                    free(server->clients[i - 1].in);
-                    free(server->clients[i - 1].out);
+                    int client_idx = i - 1;
 
-                    server->clients[i - 1] = server->clients[server->num_clients - 1];
+                    free(server->clients[client_idx].in);
+                    free(server->clients[client_idx].out);
+
+                    server->clients[client_idx] = server->clients[server->num_clients - 1];
                     server->num_clients -= 1;
 
                     continue;

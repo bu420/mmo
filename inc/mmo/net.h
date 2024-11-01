@@ -2,9 +2,9 @@
 #define MMO_NET_H
 
 #include <stdint.h>
-#include <stddef.h>
 
 #define MMO_MAX_CLIENTS 2
+#define MMO_IO_BUF_SIZE 1024
 
 typedef int mmo_socket_t;
 
@@ -12,12 +12,12 @@ typedef struct mmo_client_s {
     mmo_socket_t socket;
 
     /* Received data ready to be parsed. */
-    char *in;
-    size_t in_size;
+    char in[MMO_IO_BUF_SIZE];
+    int in_size;
 
     /* Outgoing data to be sent. */
-    char *out;
-    size_t out_size;
+    char out[MMO_IO_BUF_SIZE];
+    int out_size;
 } mmo_client_t;
 
 typedef struct mmo_server_s {
