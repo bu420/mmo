@@ -1,9 +1,22 @@
-# mmo
-C23-powered MMORPG server. Build with `make`.
-
-## Client
-Open a terminal and run the commands below ⬇️
+# ⋆˖⁺‧₊☽◯☾₊‧⁺˖⋆
+Text-based MMORPG server. Written in C23.
 ```sh
-curl -OL https://raw.githubusercontent.com/bu420/<repo>/<branch-name>/path/to/file
-python3 mmo-client.py
+git clone https://github.com/bu420/mmo
+cd mmo
+make
+```
+
+## How To Play
+The client is a Python script so you will need to have Python installed.
+
+Open a terminal and run the following commands to download and launch the client:
+```sh
+curl -OL https://raw.githubusercontent.com/bu420/mmo/master/client.py
+python3 client.py
+```
+
+Alternatively:
+```sh
+wget https://raw.githubusercontent.com/bu420/mmo/master/client.py
+python3 client.py
 ```
