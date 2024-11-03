@@ -8,7 +8,7 @@
 #define PORT 2000
 #define TPS 10
 
-int main() {
+int main(int argc, char *argv[]) {
     mmo_server_t server;
 
     if (mmo_server_listen(&server, PORT) == -1) {
