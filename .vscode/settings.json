@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "net.h": "c"
+        "net.h": "c",
+        "netdb.h": "c",
+        "typeinfo": "cpp",
+        "stdbool.h": "c"
     }
 }

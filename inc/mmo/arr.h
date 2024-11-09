@@ -2,26 +2,28 @@
 #define MMO_ARR_H
 
 #include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 /* Generate struct and function declarations for generic resizeable array. 
    Put in header. */
-#define MMO_ARR_DECL(type)                                                      \
-    typedef struct type ## _arr_s {                                             \
+#define MMO_ARR_DECL(type, name)                                                \
+    typedef struct name ## _arr_s {                                             \
         type *elems;                                                            \
-        int num_elems;                                                          \
-        int max_elems;                                                          \
-    } type ## _arr_t;                                                           \
+        size_t num_elems;                                                       \
+        size_t max_elems;                                                       \
+    } name ## _arr_t;                                                           \
                                                                                 \
-    int type ## _arr_new(type ## _arr_t *arr, int num_elems);                   \
-    void type ## _arr_free(type ## _arr_t *arr);                                \
-    int type ## _arr_append(type ## _arr_t *arr, type elem);                    \
-    int type ## _arr_insert(type ## _arr_t *arr, type elem, int i);             \
-    void type ## _arr_remove(type ## _arr_t *arr, int i);
+    int name ## _arr_new(name ## _arr_t *arr, size_t num_elems);                \
+    void name ## _arr_free(name ## _arr_t *arr);                                \
+    int name ## _arr_append(name ## _arr_t *arr, type elem);                    \
+    int name ## _arr_insert(name ## _arr_t *arr, type elem, size_t i);          \
+    void name ## _arr_remove(name ## _arr_t *arr, size_t i);
 
 /* Generate function definitions for generic resizeable array. 
    Put in source. */
-#define MMO_ARR_DEF(type)                                                       \
-    int type ## _arr_new(type ## _arr_t *arr, int num_elems) {                  \
+#define MMO_ARR_DEF(type, name)                                                 \
+    int name ## _arr_new(name ## _arr_t *arr, size_t num_elems) {               \
         arr->elems = malloc(num_elems * sizeof(type));                          \
                                                                                 \
         if (!arr->elems) {                                                      \
@@ -34,7 +36,7 @@
         return 0;                                                               \
     }                                                                           \
                                                                                 \
-    void type ## _arr_free(type ## _arr_t *arr) {                               \
+    void name ## _arr_free(name ## _arr_t *arr) {                               \
         free(arr->elems);                                                       \
         arr->elems = NULL;                                                      \
                                                                                 \
@@ -42,7 +44,20 @@
         arr->max_elems = 0;                                                     \
     }                                                                           \
                                                                                 \
-    int type ## _arr_append(type ## _arr_t *arr, type elem) {                   \
+    int name ## _arr_append(name ## _arr_t *arr, type elem) {                   \
+        assert(arr);                                                            \
+                                                                                \
+        if (name ## _arr_insert(arr, elem, arr->num_elems) == -1) {             \
+            return -1;                                                          \
+        }                                                                       \
+                                                                                \
+        return 0;                                                               \
+    }                                                                           \
+                                                                                \
+    int name ## _arr_insert(name ## _arr_t *arr, type elem, size_t i) {         \
+        assert(arr);                                                            \
+        assert(i >= 0 && i <= arr->num_elems);                                  \
+                                                                                \
         if (arr->num_elems == arr->max_elems) {                                 \
             if (arr->max_elems == 0) {                                          \
                 arr->max_elems = 1;                                             \
@@ -51,25 +66,41 @@
                 arr->max_elems *= 2;                                            \
             }                                                                   \
                                                                                 \
-            arr->elems = realloc(arr->elems, arr->max_elems);                   \
+            arr->elems = realloc(arr->elems, arr->max_elems * sizeof(type));    \
                                                                                 \
             if (!arr->elems) {                                                  \
                 return -1;                                                      \
             }                                                                   \
         }                                                                       \
                                                                                 \
-        arr->elems[arr->num_elems] = elem;                                      \
+        /* If new element is not last element, move elements after i one        \
+           step back. */                                                        \
+        if (i != arr->num_elems) {                                              \
+            assert(memmove(arr->elems + i + 1, arr->elems + i,                  \
+                (arr->num_elems - i) * sizeof(type)) == 0);                     \
+        }                                                                       \
+                                                                                \
+        arr->elems[i] = elem;                                                   \
         arr->num_elems += 1;                                                    \
                                                                                 \
         return 0;                                                               \
     }                                                                           \
                                                                                 \
-    int type ## _arr_insert(type ## _arr_t *arr, type elem, int i) {            \
-        return -1;                                                              \
-    }                                                                           \
+    void name ## _arr_remove(name ## _arr_t *arr, size_t i) {                   \
+        assert(arr);                                                            \
+        assert(arr->num_elems > 0);                                             \
+        assert(i > 0 && i < arr->num_elems);                                    \
                                                                                 \
-    void type ## _arr_remove(type ## _arr_t *arr, int i) {                      \
+        if (i != arr->num_elems - 1) {                                          \
+            assert(memmove(arr->elems + i, arr->elems + i + 1,                  \
+                (arr->num_elems - 1 - i) * sizeof(type)) == 0);                 \
+        }                                                                       \
                                                                                 \
+        arr->num_elems -= 1;                                                    \
     }
+
+/* Generate arrays for primitives. */
+MMO_ARR_DECL(char, mmo_char);
+MMO_ARR_DECL(int, mmo_int);
 
 #endif

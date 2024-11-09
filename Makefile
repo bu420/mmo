@@ -3,10 +3,13 @@ LIB := -lm
 WARN := -Wall -Wextra -Wconversion
 
 mmo:
-	clang-19 -O3 -std=c23 -Iinc ${WARN} -o bin/mmo ${SRC} ${LIB}
+	clang-19 -std=gnu23 -O3 -DNDEBUG -Iinc ${WARN} ${SRC} ${LIB} -o bin/mmo
 
 debug:
-	clang-19 -g -std=c23 -Iinc ${WARN} -o bin/mmo ${SRC} ${LIB}
+	clang-19 -std=gnu23 -g -Iinc ${WARN} ${SRC} ${LIB} -o bin/mmo
 
 client:
-	clang-19 -O3 -std=c23 ${WARN} -o bin/client src/client.c
+	clang-19 -std=gnu23 -O3 -DNDEBUG ${WARN} src/client.c -o bin/client 
+
+client-debug:
+	clang-19 -std=gnu23 -g ${WARN} src/client.c -o bin/client

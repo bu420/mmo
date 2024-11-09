@@ -145,10 +145,8 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
 
                 mmo_client_t client;
                 client.socket = socket;
-                client.in = NULL;
-                client.in_size = 0;
-                client.out = NULL;
-                client.out_size = 0;
+                mmo_char_arr_new(&client.in, 0);
+                mmo_char_arr_new(&client.out, 0);
 
                 server->clients[server->num_clients] = client;
                 server->num_clients += 1;
@@ -177,8 +175,8 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
 
                     int client_idx = i - 1;
 
-                    free(server->clients[client_idx].in);
-                    free(server->clients[client_idx].out);
+                    mmo_char_arr_free(&server->clients[client_idx].in);
+                    mmo_char_arr_free(&server->clients[client_idx].out);
 
                     server->clients[client_idx] = server->clients[server->num_clients - 1];
                     server->num_clients -= 1;
@@ -187,7 +185,7 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
                 }
 
                 /* Error. */
-                if (num_bytes < 0) {
+                if (num_bytes == -1) {
                     close(sockets[i].fd);
                     
                     return -1;

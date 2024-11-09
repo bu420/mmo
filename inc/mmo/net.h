@@ -3,21 +3,20 @@
 
 #include <stdint.h>
 
+#include <mmo/arr.h>
+
 #define MMO_MAX_CLIENTS 2
-#define MMO_IO_BUF_SIZE 1024
 
 typedef int mmo_socket_t;
 
 typedef struct mmo_client_s {
     mmo_socket_t socket;
 
-    /* Received data ready to be parsed. */
-    char in[MMO_IO_BUF_SIZE];
-    int in_size;
+    /* Received data. */
+    mmo_char_arr_t in;
 
-    /* Outgoing data to be sent. */
-    char out[MMO_IO_BUF_SIZE];
-    int out_size;
+    /* Outgoing data. */
+    mmo_char_arr_t out;
 } mmo_client_t;
 
 typedef struct mmo_server_s {

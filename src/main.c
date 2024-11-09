@@ -4,11 +4,15 @@
 #include <errno.h>
 
 #include <mmo/net.h>
+#include <mmo/arr.h>
 
 #define PORT 2000
 #define TPS 10
 
-int main(int argc, char *argv[]) {
+MMO_ARR_DEF(char, mmo_char);
+MMO_ARR_DEF(int, mmo_int);
+
+int main() {
     mmo_server_t server;
 
     if (mmo_server_listen(&server, PORT) == -1) {
@@ -17,7 +21,7 @@ int main(int argc, char *argv[]) {
 
     printf("Server listening on port %d.\n", PORT);
 
-    while (1) {
+    while (true) {
         /* Update game. */
 
         
