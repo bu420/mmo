@@ -10,14 +10,17 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+#define ADDRESS "mmo.severinsen.se"
+#define PORT "2000"
+
 struct termios orig_term_settings;
 
-void reset_terminal() {
+void restore_terminal() {
     tcsetattr(fileno(stdin), TCSANOW, &orig_term_settings);
 }
 
 void sigint_callback(int) {
-    reset_terminal();
+    restore_terminal();
 }
 
 int set_nonblocking(int fd) {
@@ -51,18 +54,24 @@ int main() {
         return -1;
     }
 
-    /* Reset terminal on exit. */
-    if (atexit(reset_terminal) == -1) {
-        return -1;
-    }
-
-    /* Reset terminal on SIGINT (Ctrl + C). */
-    if (signal(SIGINT, sigint_callback) == SIG_ERR) {
-        return -1;
-    }
-
-    /* Make stdin non-blocking so that read() doesn't block. */
+    /* Make user input non-blocking. */
     if (set_nonblocking(fileno(stdin)) == -1) {
+        return -1;
+    }
+
+    /* Disable buffering on the standard output stream.
+       Otherwise it won't flush unless a newline is printed. */
+    if (setvbuf(stdout, NULL, _IONBF, 0) != 0) {
+        return -1;
+    }
+
+    /* Restore terminal on exit or SIGINT (Ctrl + C). */
+
+    if (atexit(restore_terminal) == -1) {
+        return -1;
+    }
+
+    if (signal(SIGINT, sigint_callback) == SIG_ERR) {
         return -1;
     }
 
@@ -74,7 +83,7 @@ int main() {
 
     struct addrinfo *addr;
 
-    if (getaddrinfo("mmo.severinsen.se", "2000", &hints, &addr) == -1) {
+    if (getaddrinfo(ADDRESS, PORT, &hints, &addr) == -1) {
         return -1;
     }
 
@@ -110,8 +119,7 @@ int main() {
 
     /* Main loop. */
     while (true) {    
-        /* Poll for socket events. */
-        if (poll(fds, 2, 100) == -1) {
+        if (poll(fds, 2, -1) == -1) {
             return -1;
         }
 
@@ -136,6 +144,7 @@ int main() {
 
         /* Check if user has entered input. */
         if (fds[1].revents & POLLIN) {
+            /* Read input from standard input stream. */
             char bytes[64];
             int num_bytes = (int)read(fileno(stdin), bytes, 64);
             
@@ -143,7 +152,10 @@ int main() {
                 return -1;
             }
 
-            printf("Num bytes: %d, bytes: %.*s\n", num_bytes, num_bytes, bytes);
+            /* Send user input to server. */
+            if (send(sock, bytes, (size_t)num_bytes, 0) == -1) {
+                return -1;
+            }
         }
     }
 }

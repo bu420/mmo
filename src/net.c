@@ -191,14 +191,14 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
                     return -1;
                 }
                 
-                /* Broadcast data to everyone else. */
+                /* Broadcast data. */
 
                 for (int j = 1; j < num_sockets; j += 1) {
                     mmo_socket_t receiver = sockets[j].fd;
-                    mmo_socket_t sender = sockets[i].fd;
+                    //mmo_socket_t sender = sockets[i].fd;
 
-                    if (receiver != sender) {
-                        send(receiver, bytes, (size_t)num_bytes, 0);
+                    if (send(receiver, bytes, (size_t)num_bytes, 0) == -1) {
+                        return -1;
                     }
                 }
             }
