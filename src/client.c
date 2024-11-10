@@ -52,12 +52,11 @@ int send_int(int sock, int value) {
 
 int send_handshake(int sock, int width, int height) {
     /* Send packet ID. */
-    if (send(sock, "\x00", 1, 0) == -1) {
+    if (send_int(sock, 0) == -1) {
         return -1;
     }
 
     /* Send client version. */
-
     if (send_int(sock, VERSION) == -1) {
         return -1;
     }
@@ -77,18 +76,16 @@ int send_handshake(int sock, int width, int height) {
 
 int send_text(int sock, const char *text, int len) {
     /* Send packet ID. */
-    if (send(sock, "\x01", 1, 0) == -1) {
+    if (send_int(sock, 1) == -1) {
         return -1;
     }
 
     /* Send text length. */
-
     if (send_int(sock, len) == -1) {
         return -1;
     }
 
     /* Send text. */
-
     if (send(sock, text, (size_t)len, 0) == -1) {
         return -1;
     }
@@ -98,7 +95,7 @@ int send_text(int sock, const char *text, int len) {
 
 int send_term_size(int sock, int width, int height) {
     /* Send packet ID. */
-    if (send(sock, "\x02", 1, 0) == -1) {
+    if (send_int(sock, 2) == -1) {
         return -1;
     }
 
@@ -224,7 +221,6 @@ int main() {
                 return 0;
             }
             else if (num_bytes == -1) {
-                printf("Error.\n");
                 return -1;
             }
 
