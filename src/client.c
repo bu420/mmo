@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <termios.h>
 #include <signal.h>
@@ -8,10 +9,12 @@
 #include <sys/poll.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <netdb.h>
 
 #define ADDRESS "mmo.severinsen.se"
 #define PORT "2000"
+#define VERSION 1
 
 struct termios orig_term_settings;
 
@@ -31,6 +34,81 @@ int set_nonblocking(int fd) {
     }
 
     if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int send_int(int sock, int value) {
+    uint32_t net_value = htonl((uint32_t)value);
+
+    if (send(sock, &net_value, 4, 0) == -1) {
+        return -1;
+    }
+
+    return 0;
+} 
+
+int send_handshake(int sock, int width, int height) {
+    /* Send packet ID. */
+    if (send(sock, "\x00", 1, 0) == -1) {
+        return -1;
+    }
+
+    /* Send client version. */
+
+    if (send_int(sock, VERSION) == -1) {
+        return -1;
+    }
+
+    /* Send terminal size. */
+
+    if (send_int(sock, width) == -1) {
+        return -1;
+    }
+
+    if (send_int(sock, height) == -1) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int send_text(int sock, const char *text, int len) {
+    /* Send packet ID. */
+    if (send(sock, "\x01", 1, 0) == -1) {
+        return -1;
+    }
+
+    /* Send text length. */
+
+    if (send_int(sock, len) == -1) {
+        return -1;
+    }
+
+    /* Send text. */
+
+    if (send(sock, text, (size_t)len, 0) == -1) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int send_term_size(int sock, int width, int height) {
+    /* Send packet ID. */
+    if (send(sock, "\x02", 1, 0) == -1) {
+        return -1;
+    }
+
+    /* Send terminal size. */
+
+    if (send_int(sock, width) == -1) {
+        return -1;
+    }
+
+    if (send_int(sock, height) == -1) {
         return -1;
     }
 
@@ -60,7 +138,7 @@ int main() {
     }
 
     /* Disable buffering on the standard output stream.
-       Otherwise it won't flush unless a newline is printed. */
+       Otherwise it won't flush until a newline is printed. */
     if (setvbuf(stdout, NULL, _IONBF, 0) != 0) {
         return -1;
     }
@@ -106,6 +184,18 @@ int main() {
         return -1;
     }
 
+    /* Send handshake packet (client version and terminal size) to server. */
+
+    struct winsize size;
+    ioctl(fileno(stdout), TIOCGWINSZ, &size);
+
+    int width = size.ws_col;
+    int height = size.ws_row;
+
+    if (send_handshake(sock, width, height) == -1) {
+        return -1;
+    }
+
     /* Setup poll structure to poll on both socket and
        the standard input stream. */
 
@@ -119,7 +209,7 @@ int main() {
 
     /* Main loop. */
     while (true) {    
-        if (poll(fds, 2, -1) == -1) {
+        if (poll(fds, 2, 500) == -1) {
             return -1;
         }
 
@@ -153,7 +243,22 @@ int main() {
             }
 
             /* Send user input to server. */
-            if (send(sock, bytes, (size_t)num_bytes, 0) == -1) {
+            if (send_text(sock, bytes, num_bytes) == -1) {
+                return -1;
+            }
+        }
+
+        /* Check if terminal size has changed. */
+
+        struct winsize size;
+        ioctl(fileno(stdout), TIOCGWINSZ, &size);
+
+        if (size.ws_col != width || size.ws_row != height) {
+            width = size.ws_col;
+            height = size.ws_row;
+
+            /* Send new terminal size to server. */
+            if (send_term_size(sock, width, height) == -1) {
                 return -1;
             }
         }

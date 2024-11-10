@@ -3,6 +3,9 @@
         "net.h": "c",
         "netdb.h": "c",
         "typeinfo": "cpp",
-        "stdbool.h": "c"
+        "stdbool.h": "c",
+        "fcntl.h": "c",
+        "socket.h": "c",
+        "ioctl.h": "c"
     }
 }
