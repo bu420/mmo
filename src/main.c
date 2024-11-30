@@ -9,9 +9,6 @@
 #define PORT 2000
 #define TPS 10
 
-MMO_ARR_DEF(char, mmo_char);
-MMO_ARR_DEF(int, mmo_int);
-
 int main() {
     mmo_server_t server;
 

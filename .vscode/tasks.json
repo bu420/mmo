@@ -6,6 +6,12 @@
             "type": "shell",
             "command": "make",
             "args": ["debug"]
+        },
+        {
+            "label": "run makefile expanded",
+            "type": "shell",
+            "command": "make",
+            "args": ["debug-expanded"]
         }
     ]
 }

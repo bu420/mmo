@@ -6,6 +6,7 @@
         "stdbool.h": "c",
         "fcntl.h": "c",
         "socket.h": "c",
-        "ioctl.h": "c"
+        "ioctl.h": "c",
+        "arr": "c"
     }
 }

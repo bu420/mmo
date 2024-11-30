@@ -213,7 +213,7 @@ int main() {
         /* Check if socket has received data. */
         if (fds[0].revents & POLLIN) {
             /* Read received data. */
-            char bytes[512];
+            char bytes[2048];
             int num_bytes = (int)recv(sock, bytes, sizeof(bytes), 0);
 
             if (num_bytes == 0) {
@@ -231,8 +231,8 @@ int main() {
         /* Check if user has entered input. */
         if (fds[1].revents & POLLIN) {
             /* Read input from standard input stream. */
-            char bytes[64];
-            int num_bytes = (int)read(fileno(stdin), bytes, 64);
+            char bytes[256];
+            int num_bytes = (int)read(fileno(stdin), bytes, 256);
             
             if (num_bytes == -1) {
                 return -1;

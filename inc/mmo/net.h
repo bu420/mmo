@@ -2,6 +2,7 @@
 #define MMO_NET_H
 
 #include <stdint.h>
+#include <arpa/inet.h>
 
 #include <mmo/arr.h>
 
@@ -11,6 +12,8 @@ typedef int mmo_socket_t;
 
 typedef struct mmo_client_s {
     mmo_socket_t socket;
+
+    char ip[INET_ADDRSTRLEN];
 
     /* Received data. */
     mmo_char_arr_t in;
@@ -30,7 +33,7 @@ typedef struct mmo_server_s {
 int mmo_server_listen(mmo_server_t *server, uint16_t port);
 
 /* Poll for events. Receives data and accepts/closes connections.
-   Blocking for the duration of tick_remaining_millisecs. */
+   It's blocking for the duration of tick_remaining_millisecs. */
 int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs);
 
 #endif

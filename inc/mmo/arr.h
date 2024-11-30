@@ -18,7 +18,8 @@
     void name ## _arr_free(name ## _arr_t *arr);                                \
     int name ## _arr_append(name ## _arr_t *arr, type elem);                    \
     int name ## _arr_insert(name ## _arr_t *arr, type elem, size_t i);          \
-    void name ## _arr_remove(name ## _arr_t *arr, size_t i);
+    void name ## _arr_remove(name ## _arr_t *arr, size_t i);                    \
+    void name ## _arr_clear(name ## _arr_t *arr);
 
 /* Generate function definitions for generic resizeable array. 
    Put in source. */
@@ -97,6 +98,12 @@
         }                                                                       \
                                                                                 \
         arr->num_elems -= 1;                                                    \
+    }                                                                           \
+                                                                                \
+    void name ## _arr_clear(name ## _arr_t *arr) {                              \
+        assert(arr);                                                            \
+                                                                                \
+        arr->num_elems = 0;                                                     \
     }
 
 /* Generate arrays for primitives. */

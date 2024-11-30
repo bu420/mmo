@@ -141,26 +141,32 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
                     continue;
                 }
 
-                /* Add socket to array. */
+                /* Create client and add to array. */
 
                 mmo_client_t client;
                 client.socket = socket;
-                mmo_char_arr_new(&client.in, 0);
-                mmo_char_arr_new(&client.out, 0);
+
+                if (mmo_char_arr_new(&client.in, 0) == -1) {
+                    return -1;
+                }
+
+                if (mmo_char_arr_new(&client.out, 0) == -1) {
+                    return -1;
+                }
+
+                if (!inet_ntop(addr.ss_family, &(((struct sockaddr_in *)&addr)->sin_addr), client.ip, INET_ADDRSTRLEN)) {
+                    return -1;
+                }
 
                 server->clients[server->num_clients] = client;
                 server->num_clients += 1;
-
-                const char welcome[] = "Welcome to \x1b[38;2;255;0;100mBu's \x1b[38;2;0;100;200mTelnet server\x1b[0m\r\n>";
-                send(socket, welcome, strlen(welcome), 0);
-
-                char ip[INET_ADDRSTRLEN];
-                printf("New connection from %s.\n", inet_ntop(addr.ss_family, &(((struct sockaddr_in *)&addr)->sin_addr), ip, INET_ADDRSTRLEN));
             }
             /* Existing connection. */
             else {
                 char bytes[256];
                 int num_bytes = (int)recv(sockets[i].fd, bytes, sizeof(bytes), 0);
+
+                int client_idx = i - 1;
 
                 /* Client disconnected gracefully. */
                 if (num_bytes == 0) {
@@ -172,8 +178,6 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
 
                     sockets[i] = sockets[num_sockets - 1];
                     num_sockets -= 1;
-
-                    int client_idx = i - 1;
 
                     mmo_char_arr_free(&server->clients[client_idx].in);
                     mmo_char_arr_free(&server->clients[client_idx].out);
@@ -191,16 +195,43 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
                     return -1;
                 }
                 
-                /* Broadcast data. */
-
-                for (int j = 1; j < num_sockets; j += 1) {
-                    mmo_socket_t receiver = sockets[j].fd;
-                    //mmo_socket_t sender = sockets[i].fd;
-
-                    if (send(receiver, bytes, (size_t)num_bytes, 0) == -1) {
+                /* Append data to array. */
+                for (int j = 0; j < num_bytes; j += 1) {
+                    if (mmo_char_arr_append(&server->clients[client_idx].in, bytes[j]) == -1) {
                         return -1;
                     }
                 }
+            }
+        }
+    }
+
+    /* Parse received data to see if a whole packet has been received. */
+
+    for (int i = 0; i < server->num_clients; i += 1) {
+        if (server->clients[i].in.num_elems >= 4) {
+            int net_packet_id = *(int *)server->clients[i].in.elems;
+            int packet_id = (int)ntohl((uint32_t)net_packet_id);
+
+            printf("Received packet (ID = %d) from client (%d)\n", packet_id, i);
+            mmo_char_arr_clear(&server->clients[i].in);
+            continue;
+
+            switch (packet_id)
+            {
+            /* Handshake. */
+            case 0:
+                break;
+
+            /* Text. */
+            case 1:
+                break;
+
+            /* New terminal size. */
+            case 2:
+                break;
+
+            default:
+                return -1;
             }
         }
     }
