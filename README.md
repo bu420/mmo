@@ -5,24 +5,17 @@ Text-based MMORPG.
 git clone https://github.com/bu420/mmo
 cd mmo
 make
-bin/mmo
+build/release/mmo
 ```
 
-## How to Play
-Download the client from Releases or build from source.
+## Debug (Visual Studio Code)
+- Open Command Palette (Ctrl+Shift+P).
+- Enter `Debug: Select and Start Debugging`.
+- Select `Debug`.
 
-### Build client
-```sh
-git clone https://github.com/bu420/mmo
-cd mmo
-make client
-bin/client
-```
-
-## Debug server with VSCode
-To debug open the command palette and select `Debug: Select and Start Debugging` and select `(gdb) Debug`.
-
-To debug macros, first run `make expand-macros` in the terminal.
-Then go into build and set breakpoints in the new source files.
-Open the command palette and select `Debug: Select and Start Debugging` and
-select `(gdb) Debug Macros`.
+To debug macros:
+- Enter `make expand` in your terminal.
+- ./build/debug_expanded/src will contain the source files after the preprocessor stage. Set breakpoints in these files.
+- Open Command Palette (Ctrl+Shift+P).
+- Enter `Debug: Select and Start Debugging`.
+- Select `Debug with expanded macros`.

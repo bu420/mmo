@@ -60,4 +60,4 @@ build/debug_expanded/%.o: build/debug_expanded/%.c
 #
 
 client:
-	$(CC) $(CFLAGS) $(RELEASE_FLAGS) src/client.c -o bin/client
+	$(CC) $(CFLAGS) $(RELEASE_FLAGS) src/client.c -o build/client

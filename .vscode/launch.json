@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "(gdb) Debug",
+            "name": "Debug",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/debug/mmo",
@@ -27,7 +27,7 @@
             "preLaunchTask": "run makefile"
         },
         {
-            "name": "(gdb) Debug Macros",
+            "name": "Debug with expanded macros",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/debug_expanded/mmo",
