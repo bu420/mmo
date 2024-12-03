@@ -1,6 +1,13 @@
 # ⋆˖⁺‧₊☽◯☾₊‧⁺˖⋆
 Text-based MMORPG.
 
+## Download and play (Ubuntu)
+```sh
+curl -OL https://github.com/bu420/mmo/releases/download/0.1.0/mmo-client-v0.1.0-ubuntu
+mmo-client-v0.1.0-ubuntu
+```
+
+## Download and run server
 ```sh
 git clone https://github.com/bu420/mmo
 cd mmo
