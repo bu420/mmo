@@ -4,7 +4,6 @@
 #include <errno.h>
 
 #include <mmo/net.h>
-#include <mmo/arr.h>
 
 #define PORT 2000
 #define TPS 10

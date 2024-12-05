@@ -2,6 +2,7 @@
 #define MMO_NET_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <arpa/inet.h>
 
 #include <mmo/arr/char.h>
@@ -9,11 +10,15 @@
 
 #define MMO_ALLOWED_CLIENT_VERSION 1
 #define MMO_MAX_CLIENTS 100
+#define MMO_MAX_TERMINAL_WIDTH 1024
+#define MMO_MAX_TERMINAL_HEIGHT 1024
 
 typedef int mmo_socket_t;
 
 typedef struct mmo_client_s {
     mmo_socket_t socket;
+
+    bool has_shook_hands;
 
     char ip[INET_ADDRSTRLEN];
 
