@@ -6,7 +6,10 @@
 
 #include <mmo/arr.h>
 
-#define MMO_MAX_CLIENTS 2
+#define MMO_ALLOWED_CLIENT_VERSION 1
+#define MMO_MAX_CLIENTS 100
+
+MMO_ARR_DECL(mmo_client_t, mmo_client);
 
 typedef int mmo_socket_t;
 
@@ -20,13 +23,14 @@ typedef struct mmo_client_s {
 
     /* Outgoing data. */
     mmo_char_arr_t out;
+
+    int terminal_width;
+    int terminal_height;
 } mmo_client_t;
 
 typedef struct mmo_server_s {
     mmo_socket_t listener;
-
-    mmo_client_t clients[MMO_MAX_CLIENTS];
-    int num_clients;
+    mmo_client_arr_t clients;
 } mmo_server_t;
 
 /* Create server. Listens for incoming connections. Non-blocking. */
