@@ -4,12 +4,11 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 
-#include <mmo/arr.h>
+#include <mmo/arr/char.h>
+#include <mmo/arr/client.h>
 
 #define MMO_ALLOWED_CLIENT_VERSION 1
 #define MMO_MAX_CLIENTS 100
-
-MMO_ARR_DECL(mmo_client_t, mmo_client);
 
 typedef int mmo_socket_t;
 

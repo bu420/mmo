@@ -1,5 +1,5 @@
-#ifndef MMO_ARR_H
-#define MMO_ARR_H
+#ifndef MMO_ARR_TEMPLATE_H
+#define MMO_ARR_TEMPLATE_H
 
 #include <stdlib.h>
 #include <string.h>
@@ -105,9 +105,5 @@
                                                                                 \
         arr->num_elems = 0;                                                     \
     }
-
-/* Generate arrays for primitives. */
-MMO_ARR_DECL(char, mmo_char);
-MMO_ARR_DECL(int, mmo_int);
 
 #endif

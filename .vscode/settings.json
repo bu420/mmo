@@ -1,4 +1,5 @@
 {
+    "clang-format.executable": "/usr/bin/clang-format-19",
     "files.associations": {
         "net.h": "c",
         "netdb.h": "c",
