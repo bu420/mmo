@@ -7,6 +7,8 @@ OBJS := $(SRCS:.c=.o)
 DEBUG_FLAGS := -g -O0 -DDEBUG
 RELEASE_FLAGS := -O3 -DNDEBUG
 
+.PHONY: expand clean
+
 #
 # Release build.
 #
@@ -41,7 +43,7 @@ expand: $(addprefix build/debug_expanded/, $(SRCS))
 
 build/debug_expanded/%.c: %.c
 	@mkdir -p $(shell dirname $@)
-	$(CC) -E $(DEBUG_FLAGS) -Iinc $< > $@
+	$(CC) -E -P $(DEBUG_FLAGS) -Iinc $< > $@
 
 #
 # Expanded macros debug build.
@@ -53,7 +55,7 @@ build/debug_expanded/mmo: $(addprefix build/debug_expanded/, $(OBJS))
 	$(CC) $(CFLAGS) $(DEBUG_FLAGS) -lm $^ -o build/debug_expanded/mmo
 
 build/debug_expanded/%.o: build/debug_expanded/%.c
-	$(CC) -c $(CFLAGS) $(DEBUG_FLAGS) -Iinc $< -o $@
+	$(CC) -c $(CFLAGS) $(DEBUG_FLAGS) -Wno-unused-function $< -o $@
 
 #
 # Client build.
@@ -61,3 +63,6 @@ build/debug_expanded/%.o: build/debug_expanded/%.c
 
 client:
 	$(CC) $(CFLAGS) $(RELEASE_FLAGS) src/client.c -o build/client
+
+clean:
+	rm -r build
