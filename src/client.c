@@ -12,23 +12,21 @@
 #include <sys/ioctl.h>
 #include <netdb.h>
 
-#define ADDRESS "mmo.severinsen.se"
-#define PORT "2000"
-#define VERSION 1
+#define PROTOCOL_VERSION 1
 
 struct termios orig_term_settings;
 
-void restore_terminal() {
-    tcsetattr(fileno(stdin), TCSANOW, &orig_term_settings);
-}
+void restore_terminal() { tcsetattr(fileno(stdin), TCSANOW, &orig_term_settings); }
 
-void sigint_callback(int) {
+void sigint_callback(int signum) {
+    (void)signum;
+
     restore_terminal();
 }
 
 int set_nonblocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
-    
+
     if (flags == -1) {
         return -1;
     }
@@ -48,7 +46,7 @@ int send_int(int sock, int value) {
     }
 
     return 0;
-} 
+}
 
 int send_handshake(int sock, int width, int height) {
     /* Send packet ID. */
@@ -56,8 +54,8 @@ int send_handshake(int sock, int width, int height) {
         return -1;
     }
 
-    /* Send client version. */
-    if (send_int(sock, VERSION) == -1) {
+    /* Send protocol version. */
+    if (send_int(sock, PROTOCOL_VERSION) == -1) {
         return -1;
     }
 
@@ -112,7 +110,17 @@ int send_term_size(int sock, int width, int height) {
     return 0;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+    /* Read server address and port from arguments. */
+
+    if (argc < 3) {
+        printf("Too few arguments. Pass: <server address> <port>\nTerminating.\n");
+        return -1;
+    }
+
+    const char *server_address = argv[1];
+    const char *server_port    = argv[2];
+
     /* Put terminal in non-canonical mode and disable echo. */
 
     if (tcgetattr(fileno(stdin), &orig_term_settings) == -1) {
@@ -121,9 +129,9 @@ int main() {
 
     struct termios term_settigs = orig_term_settings;
 
-    term_settigs.c_lflag &= (tcflag_t)~(ICANON | ECHO);
-    term_settigs.c_cc[VTIME] = 0;
-    term_settigs.c_cc[VMIN] = 1;
+    term_settigs.c_lflag     &= (tcflag_t) ~(ICANON | ECHO);
+    term_settigs.c_cc[VTIME]  = 0;
+    term_settigs.c_cc[VMIN]   = 1;
 
     if (tcsetattr(fileno(stdin), TCSAFLUSH, &term_settigs) == -1) {
         return -1;
@@ -153,12 +161,12 @@ int main() {
     /* Create socket. */
 
     struct addrinfo hints = {};
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_family       = AF_UNSPEC;
+    hints.ai_socktype     = SOCK_STREAM;
 
     struct addrinfo *addr;
 
-    if (getaddrinfo(ADDRESS, PORT, &hints, &addr) == -1) {
+    if (getaddrinfo(server_address, server_port, &hints, &addr) == -1) {
         return -1;
     }
 
@@ -186,7 +194,7 @@ int main() {
     struct winsize size;
     ioctl(fileno(stdout), TIOCGWINSZ, &size);
 
-    int width = size.ws_col;
+    int width  = size.ws_col;
     int height = size.ws_row;
 
     if (send_handshake(sock, width, height) == -1) {
@@ -198,14 +206,14 @@ int main() {
 
     struct pollfd fds[2];
 
-    fds[0].fd = sock;
+    fds[0].fd     = sock;
     fds[0].events = POLLIN;
 
-    fds[1].fd = fileno(stdin);
+    fds[1].fd     = fileno(stdin);
     fds[1].events = POLLIN;
 
     /* Main loop. */
-    while (true) {    
+    while (true) {
         if (poll(fds, 2, 500) == -1) {
             return -1;
         }
@@ -219,8 +227,7 @@ int main() {
             if (num_bytes == 0) {
                 printf("Connection closed.\n");
                 return 0;
-            }
-            else if (num_bytes == -1) {
+            } else if (num_bytes == -1) {
                 return -1;
             }
 
@@ -233,7 +240,7 @@ int main() {
             /* Read input from standard input stream. */
             char bytes[256];
             int num_bytes = (int)read(fileno(stdin), bytes, 256);
-            
+
             if (num_bytes == -1) {
                 return -1;
             }
@@ -250,7 +257,7 @@ int main() {
         ioctl(fileno(stdout), TIOCGWINSZ, &size);
 
         if (size.ws_col != width || size.ws_row != height) {
-            width = size.ws_col;
+            width  = size.ws_col;
             height = size.ws_row;
 
             /* Send new terminal size to server. */

@@ -1,4 +1,4 @@
-CC := clang-19
+CC := clang
 CFLAGS := -std=gnu23 -Werror -Wall -Wextra -Wconversion
 
 SRCS := src/main.c src/net.c src/arr.c src/packet.c

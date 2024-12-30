@@ -73,6 +73,10 @@ int mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client) {
     switch (packet_id) {
         /* Handshake. 3 x 32-bit integers. */
         case 0: {
+            if (client->state != MMO_CLIENT_STATE_AWAITING_HANDSHAKE) {
+                return -1;
+            }
+
             int32_t client_version         = mmo_read_next_int32(bytes);
             int32_t client_terminal_width  = mmo_read_next_int32(bytes);
             int32_t client_terminal_height = mmo_read_next_int32(bytes);
@@ -86,7 +90,7 @@ int mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client) {
                 return -1;
             }
 
-            client->has_shook_hands = true;
+            client->state           = MMO_CLIENT_STATE_VERIFIED;
             client->terminal_width  = client_terminal_width;
             client->terminal_height = client_terminal_height;
 
@@ -95,6 +99,10 @@ int mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client) {
 
         /* Text. 1 x 32-bit integer plus N bytes of text. */
         case 1: {
+	    if (client->state != MMO_CLIENT_STATE_ONLINE) {
+		return -1;
+	    }
+
             int32_t num_bytes_text = mmo_read_next_int32(bytes);
 
             for (int i = 0; i < num_bytes_text; i += 1) {
@@ -107,8 +115,12 @@ int mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client) {
             break;
         }
 
-        /* Terminal size. 2 x 32-bit integers. */
+        /* New terminal size. 2 x 32-bit integers. */
         case 2: {
+	    if (client->state != MMO_CLIENT_STATE_ONLINE) {
+		return -1;
+	    }
+
             client->terminal_width  = mmo_read_next_int32(bytes);
             client->terminal_height = mmo_read_next_int32(bytes);
 
@@ -116,7 +128,7 @@ int mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client) {
                 client->terminal_height > MMO_MAX_TERMINAL_HEIGHT) {
                 return -1;
             }
-            
+
             break;
         }
     }

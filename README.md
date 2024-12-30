@@ -1,14 +1,14 @@
 # ⋆˖⁺‧₊☽◯☾₊‧⁺˖⋆
-Text-based MMORPG built for POSIX compatible systems.
+Text-based MMORPG for POSIX-compliant systems.
 
-## Download Client (Ubuntu)
+## Download Client
 ```sh
 curl -OL https://github.com/bu420/mmo/releases/download/0.1.0/mmo-client-v0.1.0-ubuntu
 mmo-client-v0.1.0-ubuntu
 ```
 
 ## Toolchain
-Git, Clang, Make and LLDB or GDB for debugging.
+`git`, `make`, `clang` and optionally `lldb`.
 
 ## Build Client
 ```sh

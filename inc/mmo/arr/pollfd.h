@@ -5,6 +5,6 @@
 
 #include <mmo/arr/template.h>
 
-MMO_ARR_DECL(struct pollfd, mmo_pollfd);
+MMO_ARR_DECL(struct pollfd, mmo_pollfd_arr);
 
 #endif

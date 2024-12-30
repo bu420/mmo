@@ -33,7 +33,7 @@ static int mmo_socket_set_blocking(mmo_socket_t socket, bool blocking) {
     return 0;
 }
 
-int mmo_server_listen(mmo_server_t *server, uint16_t port) {
+int mmo_server_listen(mmo_server_t *server, int port) {
     if (mmo_client_arr_new(&server->clients, 0) == -1) {
         return -1;
     }
@@ -61,7 +61,7 @@ int mmo_server_listen(mmo_server_t *server, uint16_t port) {
 
     struct sockaddr_in addr;
     addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(port);
+    addr.sin_port        = htons((uint16_t)port);
     addr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(server->listener, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
@@ -79,7 +79,20 @@ int mmo_server_listen(mmo_server_t *server, uint16_t port) {
     return 0;
 }
 
-int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
+static void mmo_disconnect_client(mmo_server_t *server, mmo_client_t *client) {
+    printf("Client left (%s).\n", client->ip);
+
+    close(client->socket);
+
+    mmo_char_arr_free(&client->in);
+    mmo_char_arr_free(&client->out);
+
+    mmo_client_arr_remove_from_ptr(&server->clients, client);
+}
+
+int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs,
+                    mmo_client_handle_arr_t *new_clients,
+                    mmo_client_handle_arr_t *removed_clients) {
     /* Array of file descriptors (sockets) to be polled.
        Set first element to listener socket and rest to client sockets. */
 
@@ -89,14 +102,35 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
         return -1;
     }
 
-    if (mmo_pollfd_arr_append(&polled_sockets, (struct pollfd){.fd = server->listener, .events = POLLIN}) ==
-        -1) {
+    if (mmo_pollfd_arr_append(&polled_sockets,
+                              (struct pollfd){.fd = server->listener, .events = POLLIN}) == -1) {
         return -1;
     }
 
     for (size_t i = 0; i < server->clients.num_elems; i += 1) {
-        if (mmo_pollfd_arr_append(&polled_sockets, (struct pollfd){.fd     = server->clients.elems[i].socket,
-                                                                   .events = POLLIN}) == -1) {
+        mmo_client_t *client = &server->clients.elems[i];
+
+        /* Check if client is set to be removed. */
+        if (client->state == MMO_CLIENT_STATE_TO_BE_REMOVED) {
+            mmo_disconnect_client(server, client);
+
+            continue;
+        }
+
+        /* Check If client has successfully sent a valid handshake packet.
+           If so, notify server owner of a new user. */
+        if (client->state == MMO_CLIENT_STATE_VERIFIED) {
+            client->state = MMO_CLIENT_STATE_ONLINE;
+
+            if (mmo_client_handle_arr_append(new_clients, client->socket) == -1) {
+                return -1;
+            }
+        }
+
+        /* Otherwise add client socket to array of sockets to be polled for events. */
+        if (mmo_pollfd_arr_append(
+                &polled_sockets,
+                (struct pollfd){.fd = server->clients.elems[i].socket, .events = POLLIN}) == -1) {
             return -1;
         }
     }
@@ -110,7 +144,7 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
         case -1: return -1;
 
         /* Timeout. No events. */
-        case 0: return 0;
+        case 0: goto end;
     }
 
     /* Check listener socket for incoming connection. */
@@ -149,7 +183,7 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
 
         mmo_client_t client;
         client.socket = socket;
-        client.has_shook_hands = false;
+        client.state  = MMO_CLIENT_STATE_AWAITING_HANDSHAKE;
 
         if (mmo_char_arr_new(&client.in, 0) == -1) {
             return -1;
@@ -164,7 +198,11 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs) {
             return -1;
         }
 
-        mmo_client_arr_append(&server->clients, client);
+        if (mmo_client_arr_append(&server->clients, client) == -1) {
+            return -1;
+        }
+
+        printf("New client (%s).\n", client.ip);
     }
 
 skip:
@@ -179,32 +217,18 @@ skip:
 
             mmo_client_t *client = &server->clients.elems[i - 1];
 
-            /* Client disconnected gracefully. */
-            if (num_bytes == 0) {
-                printf("Connection closed.\n");
+            /* Client disconnected gracefully (0) or error (-1). */
+            if (num_bytes <= 0) {
+                if (mmo_client_handle_arr_append(removed_clients, client->socket) == -1) {
+                    return -1;
+                }
 
-                close(polled_client_socket.fd);
-
-                /* Remove client. */
-
-                mmo_pollfd_arr_remove(&polled_sockets, i);
-                i -= 1;
-
-                mmo_char_arr_free(&client->in);
-                mmo_char_arr_free(&client->out);
-                mmo_client_arr_remove_from_ptr(&server->clients, client);
+                mmo_disconnect_client(server, client);
 
                 continue;
             }
 
-            /* Error. */
-            if (num_bytes == -1) {
-                close(polled_client_socket.fd);
-
-                return -1;
-            }
-
-            /* Append data to array. */
+            /* Append received data to array. */
             for (int j = 0; j < num_bytes; j += 1) {
                 if (mmo_char_arr_append(&client->in, bytes[j]) == -1) {
                     return -1;
@@ -217,16 +241,27 @@ skip:
                 if (mmo_handle_packet(&client->in, client) == -1) {
                     /* On malformed packet remove client. */
 
-                    mmo_pollfd_arr_remove(&polled_sockets, i);
-                    i -= 1;
+                    if (mmo_client_handle_arr_append(removed_clients, client->socket) == -1) {
+                        return -1;
+                    }
 
-                    mmo_char_arr_free(&client->in);
-                    mmo_char_arr_free(&client->out);
-                    mmo_client_arr_remove_from_ptr(&server->clients, client);
+                    mmo_disconnect_client(server, client);
                 }
             }
         }
     }
 
+end:
+    mmo_pollfd_arr_free(&polled_sockets);
+
     return 0;
+}
+
+void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t handle) {
+    for (size_t i = 0; i < server->clients.num_elems; i += 1) {
+        if (server->clients.elems[i].socket == handle) {
+            server->clients.elems[i].state = MMO_CLIENT_STATE_TO_BE_REMOVED;
+            break;
+        }
+    }
 }
