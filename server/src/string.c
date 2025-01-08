@@ -5,11 +5,9 @@
 #include <string.h>
 #include <math.h>
 
-MMO_ARR_DEF(char, mmo_string);
-
 /* Get the next word in a string with words separated by spaces. */
-static bool mmo_next_word(mmo_string_view_t text, mmo_string_view_t prev_word,
-                          mmo_string_view_t *new_word) {
+static bool mmo_next_word(mmo_char_arr_view_t text, mmo_char_arr_view_t prev_word,
+                          mmo_char_arr_view_t *new_word) {
     /* Start at the end of the previous word. */
     const char *start = prev_word.elems + prev_words.num_elems;
 
@@ -46,15 +44,15 @@ static bool mmo_next_word(mmo_string_view_t text, mmo_string_view_t prev_word,
 /* Linked list of words. */
 typedef struct mmo_node_s {
     struct mmo_node_s *next;
-    mmo_string_t word;
+    mmo_char_arr_t word;
 } mmo_node_t;
 
 /* Split string by spaces. */
-static int mmo_string_split(mmo_string_view_t string, mmo_node_t **out) {
+static int mmo_string_split(mmo_char_arr_view_t string, mmo_node_t **out) {
     mmo_node_t *head = NULL;
     mmo_node_t *tail = NULL;
 
-    mmo_string_view_t word = {.elems = string.elems, .num_elems = 0};
+    mmo_char_arr_view_t word = {.elems = string.elems, .num_elems = 0};
 
     while (mmo_next_word(string, word, &word)) {
         mmo_node_t *new_node = malloc(sizeof(mmo_node_t));
@@ -112,7 +110,7 @@ static void mmo_insert_word(mmo_node_t **words, size_t *num_words, mmo_node_t **
     *word = (*word)->next;
 }
 
-int mmo_justify_and_hyphenate(mmo_string_view_t in, int width, mmo_string_t *out) {
+int mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char_arr_t *out) {
     assert(out);
 
     if (width <= 0) {

@@ -3,10 +3,10 @@
 
 #include <arpa/inet.h>
 
-#include <mmo/string.h>
-#include <mmo/arr/char.h>
-#include <mmo/arr/client_handle.h>
-#include <mmo/arr/client.h>
+#include <mmo/char_arr.h>
+#include <mmo/client_arr.h>
+#include <mmo/client_handle_arr.h>
+#include <mmo/client_input_arr.h>
 
 #define MMO_ALLOWED_CLIENT_VERSION 1
 #define MMO_MAX_CLIENTS            100
@@ -24,7 +24,10 @@ typedef enum mmo_client_state_e {
 } mmo_client_state_t;
 
 typedef struct mmo_client_s {
-    mmo_socket_t socket;
+    union {
+        mmo_client_handle_t handle;
+        mmo_socket_t socket;
+    };
 
     mmo_client_state_t state;
 
@@ -41,22 +44,24 @@ typedef struct mmo_client_s {
 } mmo_client_t;
 
 typedef struct mmo_server_s {
+    int num_max_players;
+
     mmo_socket_t listener;
     mmo_client_arr_t clients;
 
-    mmo_client_handle_arr_t new_clients;
-    mmo_client_handle_arr_t removed_clients;
-    mmo_client_input_arr_t client_inputs;
+    /* New events after calls to mmo_server_poll() are stored here.
+       They are cleared automatically at the start of each call to mmo_server_poll(). */
+    struct {
+        mmo_client_handle_arr_t new_clients;
+        mmo_client_handle_arr_t removed_clients;
+        mmo_client_input_arr_t client_inputs;
+    } events;
 } mmo_server_t;
 
-int mmo_server_new();
-void mmo_server_free();
+void mmo_server_new(mmo_server_t *server, int num_max_players);
+void mmo_server_free(mmo_server_t *server);
 int mmo_server_listen(mmo_server_t *server, int port);
-
-/* Poll for events. Receives data and accepts/closes connections.
-   It's blocking for the duration of tick_remaining_millisecs. */
-int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs);
-
+int mmo_server_poll(mmo_server_t *server, int timeout_millisecs);
 void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t handle);
 
 #endif

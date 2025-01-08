@@ -1,5 +1,5 @@
-#ifndef MMO_LIST_TEMPLATE_H
-#define MMO_LIST_TEMPLATE_H
+#ifndef MMO_LIST_H
+#define MMO_LIST_H
 
 #include <stdlib.h>
 #include <stddef.h>

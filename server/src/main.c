@@ -4,20 +4,6 @@
 #include <mmo/game.h>
 #include <mmo/net.h>
 
-#define TPS 10
-
-void on_connect(mmo_client_handle_t client) {
-    printf("New client.\n");
-}
-
-void on_disconnect(mmo_client_handle_t client) {
-    printf("Client left.\n");
-}
-
-void on_input(mmo_client_handle_t client, mmo_string_view_t text) {
-    printf("Client input: %.*s\n", text.num_elems, text.elems);
-}
-
 int main(int argc, char *argv[]) {
     /* Read port number from command line arguments. */
 
@@ -32,7 +18,7 @@ int main(int argc, char *argv[]) {
 
     mmo_game_t game;
 
-    if (mmo_game_new(&game) == -1) {
+    if (mmo_game_new(&game, port, 100, 100) == -1) {
         return -1;
     }
 
@@ -40,7 +26,7 @@ int main(int argc, char *argv[]) {
 
     mmo_server_t server;
 
-    if (mmo_server_listen(&server, port) == -1) {
+    if (mmo_server_listen(&server) == -1) {
         return -1;
     }
 
@@ -51,7 +37,7 @@ int main(int argc, char *argv[]) {
     while (true) {
         /* Poll for server events. */
 
-        if (mmo_server_poll(&server, 1000 / TPS, on_connect, on_disconnect, on_input) == -1) {
+        if (mmo_server_poll(&server, 100) == -1) {
             return -1;
         }
 

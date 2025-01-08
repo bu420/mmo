@@ -2,8 +2,8 @@
 #define MMO_GAME_H
 
 #include <mmo/net.h>
-#include <mmo/arr/player.h>
-#include <mmo/arr/client_handle.h>
+#include <mmo/player_arr.h>
+#include <mmo/client_handle_arr.h>
 
 typedef struct mmo_player_s {
     mmo_client_handle_t client_handle;

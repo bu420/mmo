@@ -1,8 +1,9 @@
-#ifndef MMO_ARR_TEMPLATE_H
-#define MMO_ARR_TEMPLATE_H
+#ifndef MMO_ARR_H
+#define MMO_ARR_H
 
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include <string.h>
 #include <assert.h>
 
@@ -29,7 +30,8 @@
     void name##_remove_from_ptr(name##_t *arr, type *elem);                                        \
     /* This is an optimization over free().                                                        \
        Call this to reset element count without freeing up memory. */                              \
-    void name##_clear(name##_t *arr);
+    void name##_clear(name##_t *arr);                                                              \
+    type *name##_find(name##_t *arr, bool (*predicate)(const type *elem, void *cxt), void *ctx);
 
 /* Generate function definitions for generic resizeable array.
    Put in source. */
@@ -123,6 +125,16 @@
                                                                                                    \
         arr->num_elems = 0;                                                                        \
         arr->max_elems = 0;                                                                        \
+    }                                                                                              \
+                                                                                                   \
+    type *name##_find(name##_t *arr, bool (*predicate)(const type *elem, void *cxt), void *ctx) {  \
+        for (size_t i = 0; i < arr->num_elems; i += 1) {                                           \
+            if (predicate(&arr->elems[i], ctx)) {                                                  \
+                return &arr->elems[i];                                                             \
+            }                                                                                      \
+        }                                                                                          \
+                                                                                                   \
+        return NULL;                                                                               \
     }
 
 #endif

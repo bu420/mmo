@@ -11,7 +11,7 @@
 #include <sys/socket.h>
 
 #include <mmo/packet.h>
-#include <mmo/arr/pollfd.h>
+#include <mmo/pollfd_arr.h>
 
 static int mmo_socket_set_blocking(mmo_socket_t socket, bool blocking) {
     int flags = fcntl(socket, F_GETFL, 0);
@@ -33,11 +33,34 @@ static int mmo_socket_set_blocking(mmo_socket_t socket, bool blocking) {
     return 0;
 }
 
-int mmo_server_listen(mmo_server_t *server, int port) {
-    if (mmo_client_arr_new(&server->clients, 0) == -1) {
+int mmo_server_new(mmo_server_t *server, int num_max_players) {
+    server->num_max_players = num_max_players;
+
+    if (mmo_client_arr_new(&server->clients) == -1) {
         return -1;
     }
 
+    if (mmo_client_handle_arr_new(&server->events.new_clients) == -1) {
+        return -1;
+    }
+
+    if (mmo_client_handle_arr_new(&server->events.removed_clients) == -1) {
+        return -1;
+    }
+
+    if (mmo_client_input_arr_new(&server->events.client_inputs) == -1) {
+        return -1;
+    }
+}
+
+void mmo_server_free(mmo_server_t *server) {
+    mmo_client_input_arr_free(&server->events.client_inputs);
+    mmo_client_handle_arr_free(&server->events.remove_clients);
+    mmo_client_handle_arr_free(&server->events.new_clients);
+    mmo_client_arr_free(&server->clients);
+}
+
+int mmo_server_listen(mmo_server_t *server, int port) {
     /* Create socket. */
 
     server->listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -71,7 +94,7 @@ int mmo_server_listen(mmo_server_t *server, int port) {
 
     /* Listen on socket. */
 
-    if (listen(server->listener, MMO_MAX_CLIENTS) == -1) {
+    if (listen(server->listener, server->num_max_clients) == -1) {
         close(server->listener);
         return -1;
     }
@@ -79,7 +102,11 @@ int mmo_server_listen(mmo_server_t *server, int port) {
     return 0;
 }
 
-static void mmo_disconnect_client(mmo_server_t *server, mmo_client_t *client) {
+static int mmo_disconnect_client(mmo_server_t *server, mmo_client_t *client) {
+    if (mmo_client_handle_arr_append(&server->events.removed_clients, client->handle) == -1) {
+        return -1;
+    }
+
     printf("Client left (%s).\n", client->ip);
 
     close(client->socket);
@@ -90,9 +117,7 @@ static void mmo_disconnect_client(mmo_server_t *server, mmo_client_t *client) {
     mmo_client_arr_remove_from_ptr(&server->clients, client);
 }
 
-int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs,
-                    mmo_client_handle_arr_t *new_clients,
-                    mmo_client_handle_arr_t *removed_clients) {
+int mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
     /* Array of file descriptors (sockets) to be polled.
        Set first element to listener socket and rest to client sockets. */
 
@@ -112,7 +137,9 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs,
 
         /* Check if client is set to be removed. */
         if (client->state == MMO_CLIENT_STATE_TO_BE_REMOVED) {
-            mmo_disconnect_client(server, client);
+            if (mmo_disconnect_client(server, client) == -1) {
+                return -1;
+            }
 
             continue;
         }
@@ -138,7 +165,7 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs,
     /* poll(): Block until there's an event on atleast one socket.
        While there are no connected clients, wait indefinitely (-1). */
 
-    int timeout = server->clients.num_elems == 0 ? -1 : tick_remaining_millisecs;
+    int timeout = server->clients.num_elems == 0 ? -1 : timeout_millisecs;
 
     switch (poll(polled_sockets.elems, (nfds_t)polled_sockets.num_elems, timeout)) {
         case -1: return -1;
@@ -169,7 +196,7 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs,
 
         /* If too many clients, reject socket with message. */
 
-        if (server->clients.num_elems == MMO_MAX_CLIENTS) {
+        if (server->clients.num_elems == server->num_max_clients) {
             const char response[] = "Connection refused. Server is full.";
 
             send(socket, response, strlen(response), 0);
@@ -185,11 +212,11 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs,
         client.socket = socket;
         client.state  = MMO_CLIENT_STATE_AWAITING_HANDSHAKE;
 
-        if (mmo_char_arr_new(&client.in, 0) == -1) {
+        if (mmo_char_arr_new(&client.in) == -1) {
             return -1;
         }
 
-        if (mmo_char_arr_new(&client.out, 0) == -1) {
+        if (mmo_char_arr_new(&client.out) == -1) {
             return -1;
         }
 
@@ -199,6 +226,10 @@ int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs,
         }
 
         if (mmo_client_arr_append(&server->clients, client) == -1) {
+            return -1;
+        }
+
+        if (mmo_client_handle_arr_append(&server->new_clients) == -1) {
             return -1;
         }
 
@@ -212,7 +243,7 @@ skip:
         if (polled_sockets.elems[i].revents & POLLIN) {
             struct pollfd polled_client_socket = polled_sockets.elems[i];
 
-            char bytes[256];
+            char bytes[512];
             int num_bytes = (int)recv(polled_client_socket.fd, bytes, sizeof(bytes), 0);
 
             mmo_client_t *client = &server->clients.elems[i - 1];
@@ -264,4 +295,12 @@ void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t handle) 
             break;
         }
     }
+}
+
+mmo_client_t *predicate(const mmo_client_t *client, void *ctx) {
+    return client->handle == *(mmo_client_handle_t *)ctx;
+}
+
+void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t client) {
+    mmo_disconnect_client(server, mmo_client_arr_find(&server->clients, predicate, &client));
 }
