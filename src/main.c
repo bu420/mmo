@@ -2,8 +2,21 @@
 #include <stdlib.h>
 
 #include <mmo/game.h>
+#include <mmo/net.h>
 
 #define TPS 10
+
+void on_connect(mmo_client_handle_t client) {
+    printf("New client.\n");
+}
+
+void on_disconnect(mmo_client_handle_t client) {
+    printf("Client left.\n");
+}
+
+void on_input(mmo_client_handle_t client, mmo_string_view_t text) {
+    printf("Client input: %.*s\n", text.num_elems, text.elems);
+}
 
 int main(int argc, char *argv[]) {
     /* Read port number from command line arguments. */
@@ -33,32 +46,19 @@ int main(int argc, char *argv[]) {
 
     printf("Server listening on port %d.\n", port);
 
-    mmo_client_handle_arr_t new_clients;
-    mmo_client_handle_arr_t removed_clients;
-
-    if (mmo_client_handle_arr_new(&new_clients, 0) == -1 ||
-        mmo_client_handle_arr_new(&removed_clients, 0) == -1) {
-        return -1;
-    }
-
     /* Main loop. */
 
     while (true) {
         /* Poll for server events. */
 
-        if (mmo_server_poll(&server, 1000 / TPS, &new_clients, &removed_clients) == -1) {
+        if (mmo_server_poll(&server, 1000 / TPS, on_connect, on_disconnect, on_input) == -1) {
             return -1;
         }
 
         /* Update game. */
 
-        if (mmo_game_run(&game, &new_clients, &removed_clients) == -1) {
+        /*if (mmo_game_run(&game) == -1) {
             return -1;
-        }
-
-        /* Cleanup. */
-
-        mmo_client_handle_arr_free(&new_clients);
-        mmo_client_handle_arr_free(&removed_clients);
+        }*/
     }
 }

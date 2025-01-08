@@ -13,7 +13,7 @@
         type *elems;                                                                               \
         size_t num_elems;                                                                          \
         size_t max_elems;                                                                          \
-    } name##_arr_t;                                                                                \
+    } name##_t;                                                                                    \
                                                                                                    \
     typedef struct name##_view_s {                                                                 \
         type *elems;                                                                               \

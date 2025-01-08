@@ -1,6 +1,7 @@
 #ifndef MMO_GAME_H
 #define MMO_GAME_H
 
+#include <mmo/net.h>
 #include <mmo/arr/player.h>
 #include <mmo/arr/client_handle.h>
 

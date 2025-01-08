@@ -1,7 +1,7 @@
 CC := clang
 CFLAGS := -std=gnu23 -Werror -Wall -Wextra -Wconversion
 
-SRCS := src/main.c src/net.c src/arr.c src/packet.c
+SRCS := src/main.c src/net.c src/codegen.c src/packet.c src/string.c
 OBJS := $(SRCS:.c=.o)
 
 DEBUG_FLAGS := -g -O0 -DDEBUG

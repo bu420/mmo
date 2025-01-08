@@ -3,6 +3,7 @@
 
 #include <arpa/inet.h>
 
+#include <mmo/string.h>
 #include <mmo/arr/char.h>
 #include <mmo/arr/client_handle.h>
 #include <mmo/arr/client.h>
@@ -42,17 +43,19 @@ typedef struct mmo_client_s {
 typedef struct mmo_server_s {
     mmo_socket_t listener;
     mmo_client_arr_t clients;
+
+    mmo_client_handle_arr_t new_clients;
+    mmo_client_handle_arr_t removed_clients;
+    mmo_client_input_arr_t client_inputs;
 } mmo_server_t;
 
-/* Create server. Listens for incoming connections. Non-blocking. */
+int mmo_server_new();
+void mmo_server_free();
 int mmo_server_listen(mmo_server_t *server, int port);
 
 /* Poll for events. Receives data and accepts/closes connections.
    It's blocking for the duration of tick_remaining_millisecs. */
-int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs,
-                    void (*on_connect)(mmo_client_handle_t client),
-                    void (*on_disconnect)(mmo_client_handle_t client),
-                    void (*on_input)(mmo_client_handle_t client, mmo_string_view_t text));
+int mmo_server_poll(mmo_server_t *server, int tick_remaining_millisecs);
 
 void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t handle);
 
