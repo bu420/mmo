@@ -9,7 +9,6 @@
 #include <mmo/client_input_arr.h>
 
 #define MMO_ALLOWED_CLIENT_VERSION 1
-#define MMO_MAX_CLIENTS            100
 #define MMO_MAX_TERMINAL_WIDTH     1024
 #define MMO_MAX_TERMINAL_HEIGHT    1024
 
@@ -44,7 +43,7 @@ typedef struct mmo_client_s {
 } mmo_client_t;
 
 typedef struct mmo_server_s {
-    int num_max_players;
+    int num_max_clients;
 
     mmo_socket_t listener;
     mmo_client_arr_t clients;
@@ -58,10 +57,10 @@ typedef struct mmo_server_s {
     } events;
 } mmo_server_t;
 
-void mmo_server_new(mmo_server_t *server, int num_max_players);
+void mmo_server_new(mmo_server_t *server, int num_max_clients);
 void mmo_server_free(mmo_server_t *server);
-int mmo_server_listen(mmo_server_t *server, int port);
-int mmo_server_poll(mmo_server_t *server, int timeout_millisecs);
+[[nodiscard]] int mmo_server_listen(mmo_server_t *server, int port);
+[[nodiscard]] int mmo_server_poll(mmo_server_t *server, int timeout_millisecs);
 void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t handle);
 
 #endif

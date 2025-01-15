@@ -17,16 +17,14 @@ int main(int argc, char *argv[]) {
     /* Initialize game. */
 
     mmo_game_t game;
-
-    if (mmo_game_new(&game, port, 100, 100) == -1) {
-        return -1;
-    }
+    mmo_game_new(&game);
 
     /* Start server. */
 
     mmo_server_t server;
+    mmo_server_new(&server, 100);
 
-    if (mmo_server_listen(&server) == -1) {
+    if (mmo_server_listen(&server, port) == -1) {
         return -1;
     }
 
@@ -35,16 +33,16 @@ int main(int argc, char *argv[]) {
     /* Main loop. */
 
     while (true) {
+        /* Update game. */
+
+        if (mmo_game_update(&game) == -1) {
+            return -1;
+        }
+
         /* Poll for server events. */
 
         if (mmo_server_poll(&server, 100) == -1) {
             return -1;
         }
-
-        /* Update game. */
-
-        /*if (mmo_game_run(&game) == -1) {
-            return -1;
-        }*/
     }
 }

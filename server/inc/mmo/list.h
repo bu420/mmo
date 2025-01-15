@@ -23,8 +23,8 @@
     void name##_new(name##_t *list);                                                               \
     void name##_free(name##_t *list);                                                              \
     name##_node_t *name##_at(name##_t *list, size_t i);                                            \
-    int name##_append(name##_t *list, type elem);                                                  \
-    int name##_insert(name##_t *list, type elem, size_t i);                                        \
+    [[nodiscard]] int name##_append(name##_t *list, type elem);                                    \
+    [[nodiscard]] int name##_insert(name##_t *list, type elem, size_t i);                          \
     void name##_remove(name##_t *list, size_t i);
 
 /* Generate function definitions for generic doubly linked list.

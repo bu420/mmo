@@ -4,6 +4,6 @@
 #include <mmo/list.h>
 #include <mmo/char_arr.h>
 
-MMO_ARR_DECL(mmo_char_arr_t, mmo_char_arr_list)
+MMO_LIST_DECL(mmo_char_arr_t, mmo_char_arr_list)
 
 #endif

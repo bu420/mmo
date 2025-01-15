@@ -1,101 +1,48 @@
 #include <mmo/string.h>
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <math.h>
+#include "mmo/char_arr_list.h"
+#include "mmo/char_arr_view_list.h"
 
-/* Get the next word in a string with words separated by spaces. */
-static bool mmo_next_word(mmo_char_arr_view_t text, mmo_char_arr_view_t prev_word,
-                          mmo_char_arr_view_t *new_word) {
-    /* Start at the end of the previous word. */
-    const char *start = prev_word.elems + prev_words.num_elems;
+int mmo_string_split(mmo_char_arr_view_t text, char delimiter, mmo_char_arr_view_list_t *out) {
+    assert(out);
 
-    ptrdiff_t i = start - text.elems;
+    mmo_char_arr_view_list_new(out);
 
-    /* Iterate past all spaces. */
-    while (i < text.num_elems && *start == ' ') {
-        start += 1;
-        i     += 1;
-    }
+    char *start       = text.elems;
+    char *end_of_text = &text.elems[text.num_elems];
 
-    const char *end = start;
-
-    /* Iterate until end of word. */
-    while (*end != ' ') {
-        if (i == text.num_elems) {
-            if (start == end) {
-                return false;
-            }
-
-            break;
+    while (true) {
+        /* Iterate past all delimiters. */
+        while (start < end_of_text && *start == delimiter) {
+            start += 1;
         }
 
-        end += 1;
-        i   += 1;
-    }
+        char *end = start;
 
-    new_word->elems     = start;
-    new_word->num_elems = end - start;
+        /* Iterate until end of word. */
+        while (end < end_of_text && *end != delimiter) {
+            end += 1;
+        }
 
-    return true;
-}
+        /* If token is empty, stop splitting. */
+        if (start == end) {
+            return 0;
+        }
 
-/* Linked list of words. */
-typedef struct mmo_node_s {
-    struct mmo_node_s *next;
-    mmo_char_arr_t word;
-} mmo_node_t;
+        /* Create new token and add it to list. */
 
-/* Split string by spaces. */
-static int mmo_string_split(mmo_char_arr_view_t string, mmo_node_t **out) {
-    mmo_node_t *head = NULL;
-    mmo_node_t *tail = NULL;
+        mmo_char_arr_view_t token;
+        token.elems     = start;
+        token.num_elems = (size_t)(end - start);
 
-    mmo_char_arr_view_t word = {.elems = string.elems, .num_elems = 0};
-
-    while (mmo_next_word(string, word, &word)) {
-        mmo_node_t *new_node = malloc(sizeof(mmo_node_t));
-        new_node->next       = NULL;
-
-        /* Copy word. */
-
-        if (mmo_string_new(&new_node->word, 0) == -1) {
+        if (mmo_char_arr_view_list_append(out, token) == -1) {
             return -1;
         }
-
-        for (size_t i = 0; i < word.num_elems; i += 1) {
-            if (mmo_string_append(&new_node->word, word.elems[i]) == -1) {
-                return -1;
-            }
-        }
-
-        /* Insert new node into list. */
-
-        if (!head) {
-            head = new_node;
-            tail = new_node;
-        } else {
-            tail->next = new_node;
-            tail       = tail->next;
-        }
     }
-
-    *out = head;
 
     return 0;
-}
-
-static void mmo_list_free(mmo_node_t *head) {
-    while (head) {
-        mmo_node_t *temp = head;
-        head             = head->next;
-
-        mmo_string_free(&temp->word);
-
-        free(temp);
-        temp = NULL;
-    }
 }
 
 static void mmo_insert_word(mmo_node_t **words, size_t *num_words, mmo_node_t **word,
@@ -110,24 +57,44 @@ static void mmo_insert_word(mmo_node_t **words, size_t *num_words, mmo_node_t **
     *word = (*word)->next;
 }
 
-int mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char_arr_t *out) {
-    assert(out);
+int mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char_arr_arr_t *lines) {
+    assert(lines);
+    assert(width > 0);
 
-    if (width <= 0) {
+    mmo_char_arr_arr_new(lines);
+
+    /* Split up text into words. */
+
+    mmo_char_arr_view_list_t words;
+
+    if (mmo_string_split(in, ' ', &words) == -1) {
         return -1;
     }
 
-    if (mmo_string_new(out, 0) == -1) {
-        return -1;
+    mmo_char_arr_view_list_node_t *word = words.head;
+
+    /* For each line. */
+    while (word) {
+        mmo_char_arr_list_t
+
+        size_t i                   = 0;
+        size_t num_non_space_chars = 0;
+
+        /* If word fits on line, add it. Repeat. */
+        while (word && i + word->data.num_elems <= width) {
+            /* +1 for the required minimum of one following space. Used for calculation. */
+            i                   += word->data.num_elems + 1;
+            num_non_space_chars += word->data.num_elems;
+
+
+
+            word = word->next;
+        }
     }
 
-    mmo_node_t *head;
-
-    if (mmo_str_split(text, &head) == -1) {
-        return -1;
+    /* For each word. */
+    for (mmo_char_arr_view_list_node_t *word = words.head; word; word = word->next) {
     }
-
-    mmo_node_t *word = head;
 
     /* For each line. */
     while (word) {

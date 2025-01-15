@@ -24,8 +24,8 @@
     name##_view_t name##_to_view(name##_t *arr);                                                   \
     void name##_new(name##_t *arr);                                                                \
     void name##_free(name##_t *arr);                                                               \
-    int name##_append(name##_t *arr, type elem);                                                   \
-    int name##_insert(name##_t *arr, type elem, size_t i);                                         \
+    [[nodiscard]] int name##_append(name##_t *arr, type elem);                                     \
+    [[nodiscard]] int name##_insert(name##_t *arr, type elem, size_t i);                           \
     void name##_remove(name##_t *arr, size_t i);                                                   \
     void name##_remove_from_ptr(name##_t *arr, type *elem);                                        \
     /* This is an optimization over free().                                                        \
@@ -124,10 +124,11 @@
         assert(arr);                                                                               \
                                                                                                    \
         arr->num_elems = 0;                                                                        \
-        arr->max_elems = 0;                                                                        \
     }                                                                                              \
                                                                                                    \
     type *name##_find(name##_t *arr, bool (*predicate)(const type *elem, void *cxt), void *ctx) {  \
+        assert(arr);                                                                               \
+                                                                                                   \
         for (size_t i = 0; i < arr->num_elems; i += 1) {                                           \
             if (predicate(&arr->elems[i], ctx)) {                                                  \
                 return &arr->elems[i];                                                             \
