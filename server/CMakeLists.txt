@@ -15,6 +15,7 @@ set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/codegen.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/packet.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/string.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/game.c
 )
 
 add_executable(server ${SOURCES})
@@ -28,3 +29,5 @@ target_compile_options(server PRIVATE
     -Werror
     -Wconversion
 )
+
+target_link_libraries(server -lm)

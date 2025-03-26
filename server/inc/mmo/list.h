@@ -25,6 +25,7 @@
     name##_node_t *name##_at(name##_t *list, size_t i);                                            \
     [[nodiscard]] int name##_append(name##_t *list, type elem);                                    \
     [[nodiscard]] int name##_insert(name##_t *list, type elem, size_t i);                          \
+    [[nodiscard]] int name##_insert_after_node(name##_t *list, type elem, name##_node_t *node);    \
     void name##_remove(name##_t *list, size_t i);
 
 /* Generate function definitions for generic doubly linked list.
@@ -124,6 +125,28 @@
                 next->prev = node;                                                                 \
             }                                                                                      \
         }                                                                                          \
+                                                                                                   \
+        list->num_elems += 1;                                                                      \
+                                                                                                   \
+        return 0;                                                                                  \
+    }                                                                                              \
+                                                                                                   \
+    int name##_insert_after_node(name##_t *list, type elem, name##_node_t *node) {                 \
+        assert(list);                                                                              \
+        assert(node);                                                                              \
+                                                                                                   \
+        name##_node_t *new_node = malloc(sizeof(name##_node_t));                                   \
+                                                                                                   \
+        if (!new_node) {                                                                           \
+            return -1;                                                                             \
+        }                                                                                          \
+                                                                                                   \
+        new_node->data = elem;                                                                     \
+        new_node->prev = node;                                                                     \
+        new_node->next = node->next;                                                               \
+                                                                                                   \
+        node->next->prev = new_node;                                                               \
+        node->next       = new_node;                                                               \
                                                                                                    \
         list->num_elems += 1;                                                                      \
                                                                                                    \

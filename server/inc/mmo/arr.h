@@ -23,7 +23,9 @@
                                                                                                    \
     name##_view_t name##_to_view(name##_t *arr);                                                   \
     void name##_new(name##_t *arr);                                                                \
+    [[nodiscard]] int name##_new_from_view(name##_t *arr, name##_view_t view);                     \
     void name##_free(name##_t *arr);                                                               \
+    [[nodiscard]] int name##_resize(name##_t *arr, size_t num_elems);                              \
     [[nodiscard]] int name##_append(name##_t *arr, type elem);                                     \
     [[nodiscard]] int name##_insert(name##_t *arr, type elem, size_t i);                           \
     void name##_remove(name##_t *arr, size_t i);                                                   \
@@ -50,6 +52,23 @@
         arr->max_elems = 0;                                                                        \
     }                                                                                              \
                                                                                                    \
+    int name##_new_from_view(name##_t *arr, name##_view_t view) {                                  \
+        assert(arr);                                                                               \
+                                                                                                   \
+        arr->elems = malloc(view.num_elems * sizeof(type));                                        \
+                                                                                                   \
+        if (!arr->elems) {                                                                         \
+            return -1;                                                                             \
+        }                                                                                          \
+                                                                                                   \
+        memcpy(arr->elems, view.elems, view.num_elems * sizeof(type));                             \
+                                                                                                   \
+        arr->num_elems = view.num_elems;                                                           \
+        arr->max_elems = view.num_elems;                                                           \
+                                                                                                   \
+        return 0;                                                                                  \
+    }                                                                                              \
+                                                                                                   \
     void name##_free(name##_t *arr) {                                                              \
         assert(arr);                                                                               \
                                                                                                    \
@@ -58,6 +77,21 @@
                                                                                                    \
         arr->num_elems = 0;                                                                        \
         arr->max_elems = 0;                                                                        \
+    }                                                                                              \
+                                                                                                   \
+    [[nodiscard]] int name##_resize(name##_t *arr, size_t num_elems) {                             \
+        assert(arr);                                                                               \
+                                                                                                   \
+        arr->elems = realloc(arr->elems, num_elems * sizeof(type));                                \
+                                                                                                   \
+        if (!arr->elems) {                                                                         \
+            return -1;                                                                             \
+        }                                                                                          \
+                                                                                                   \
+        arr->num_elems = num_elems;                                                                \
+        arr->max_elems = num_elems;                                                                \
+                                                                                                   \
+        return 0;                                                                                  \
     }                                                                                              \
                                                                                                    \
     int name##_append(name##_t *arr, type elem) {                                                  \

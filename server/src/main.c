@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     while (true) {
         /* Update game. */
 
-        if (mmo_game_update(&game) == -1) {
+        if (mmo_game_update(&game, &server) == -1) {
             return -1;
         }
 

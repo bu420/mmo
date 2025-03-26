@@ -1,4 +1,3 @@
-#include <bits/types/struct_iovec.h>
 #include <mmo/net.h>
 
 #include <stdlib.h>
@@ -160,7 +159,7 @@ int mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
     /* poll(): Block until there's an event on atleast one socket.
        While there are no connected clients, wait indefinitely (-1). */
 
-    int timeout = server->clients.num_elems == 0 ? -1 : timeout_millisecs;
+    int timeout = /*server->clients.num_elems == 0 ? -1 : */ timeout_millisecs;
 
     switch (poll(polled_sockets.elems, (nfds_t)polled_sockets.num_elems, timeout)) {
         case -1: return -1;
@@ -240,7 +239,8 @@ skip:
 
             /* Client disconnected gracefully (0) or error (-1). */
             if (num_bytes <= 0) {
-                if (mmo_client_handle_arr_append(&server->events.removed_clients, client->handle) == -1) {
+                if (mmo_client_handle_arr_append(&server->events.removed_clients, client->handle) ==
+                    -1) {
                     return -1;
                 }
 
@@ -261,10 +261,11 @@ skip:
             /* Parse data into packets. */
 
             if (mmo_has_received_complete_packet(mmo_char_arr_to_view(&client->in))) {
-                if (!mmo_handle_packet(&client->in, client)) {
+                if (!mmo_handle_packet(&client->in, client, server)) {
                     /* On malformed packet remove client. */
 
-                    if (mmo_client_handle_arr_append(&server->events.removed_clients, client->socket) == -1) {
+                    if (mmo_client_handle_arr_append(&server->events.removed_clients,
+                                                     client->socket) == -1) {
                         return -1;
                     }
 
@@ -279,6 +280,24 @@ skip:
 end:
     mmo_pollfd_arr_free(&polled_sockets);
 
+    /* Send outgoing data to clients. */
+
+    for (size_t i = 0; i < server->clients.num_elems; i += 1) {
+        mmo_client_t *client = &server->clients.elems[i];
+
+        if (client->out.num_elems > 0) {
+            ssize_t num_bytes_sent =
+                send(client->socket, client->out.elems, client->out.num_elems, 0);
+
+            if (num_bytes_sent != -1) {
+                /* Pop sent data from stream. */
+                for (ssize_t j = 0; j < num_bytes_sent; j += 1) {
+                    mmo_char_arr_remove(&client->out, 0);
+                }
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -289,4 +308,21 @@ void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t handle) 
             break;
         }
     }
+}
+
+int mmo_server_send(mmo_server_t *server, mmo_client_handle_t handle, mmo_char_arr_view_t msg) {
+    for (size_t i = 0; i < server->clients.num_elems; i += 1) {
+        if (server->clients.elems[i].handle == handle) {
+            /* Append message to outgoing stream. */
+            for (size_t j = 0; j < msg.num_elems; j += 1) {
+                if (mmo_char_arr_append(&server->clients.elems[i].out, msg.elems[j]) == -1) {
+                    return -1;
+                }
+            }
+
+            return 0;
+        }
+    }
+
+    return -1;
 }

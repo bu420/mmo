@@ -5,6 +5,7 @@
 
 #include <mmo/net.h>
 #include "mmo/char_arr.h"
+#include "mmo/client_input_arr.h"
 
 static int32_t mmo_read_int32(mmo_char_arr_view_t bytes, size_t offset) {
     assert(bytes.num_elems >= sizeof(int32_t));
@@ -62,9 +63,10 @@ bool mmo_has_received_complete_packet(mmo_char_arr_view_t bytes) {
     return true;
 }
 
-bool mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client) {
+bool mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client, mmo_server_t *server) {
     assert(bytes);
     assert(client);
+    assert(server);
 
     int32_t packet_id = mmo_read_next_int32(bytes);
 
@@ -104,10 +106,27 @@ bool mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client) {
             int32_t num_bytes_text = mmo_read_next_int32(bytes);
 
             for (int i = 0; i < num_bytes_text; i += 1) {
-                printf("Received: %c\n", bytes->elems[0]);
+                /* Create new event from received client input. */
+
+                mmo_char_arr_t input;
+                mmo_char_arr_new(&input);
+
+                if (mmo_char_arr_resize(&input, (size_t)num_bytes_text) == -1) {
+                    return -1;
+                }
+
+                memcpy(input.elems, bytes->elems, (size_t)num_bytes_text);
+
+                if (mmo_client_input_arr_append(
+                        &server->events.client_inputs,
+                        (mmo_client_input_t){.client = client->handle, .input = input}) == -1) {
+                    return -1;
+                }
 
                 /* Pop text from array. */
-                mmo_char_arr_remove(bytes, 0);
+                for (int32_t i = 0; i < num_bytes_text; i += 1) {
+                    mmo_char_arr_remove(bytes, 0);
+                }
             }
 
             break;
