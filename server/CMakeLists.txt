@@ -16,6 +16,7 @@ set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/packet.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/string.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/game.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/render.c
 )
 
 add_executable(server ${SOURCES})

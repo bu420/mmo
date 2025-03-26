@@ -13,7 +13,7 @@ void mmo_string_get_next_token(mmo_char_arr_view_t text, mmo_char_arr_view_t pre
                                    mmo_char_arr_view_list_t *out);
 
 /* Returns column width of UTF-8 encoded string. */
-//int mmo_string_utf8_width(mmo_char_arr_view_t string);
+int mmo_string_utf8_width(mmo_char_arr_view_t string);
 
 /* Stylizes text to fit within a column of specified width.
    Returns an array of lines. */

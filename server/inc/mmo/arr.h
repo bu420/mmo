@@ -27,7 +27,9 @@
     void name##_free(name##_t *arr);                                                               \
     [[nodiscard]] int name##_resize(name##_t *arr, size_t num_elems);                              \
     [[nodiscard]] int name##_append(name##_t *arr, type elem);                                     \
+    [[nodiscard]] int name##_append_arr(name##_t *dst, name##_view_t src);                         \
     [[nodiscard]] int name##_insert(name##_t *arr, type elem, size_t i);                           \
+    [[nodiscard]] int name##_insert_arr(name##_t *dst, name##_view_t src, size_t i);               \
     void name##_remove(name##_t *arr, size_t i);                                                   \
     void name##_remove_from_ptr(name##_t *arr, type *elem);                                        \
     /* This is an optimization over free().                                                        \
@@ -104,32 +106,53 @@
         return 0;                                                                                  \
     }                                                                                              \
                                                                                                    \
+    int name##_append_arr(name##_t *dst, name##_view_t src) {                                      \
+        assert(dst);                                                                               \
+                                                                                                   \
+        if (name##_insert_arr(dst, src, dst->num_elems) == -1) {                                   \
+            return -1;                                                                             \
+        }                                                                                          \
+                                                                                                   \
+        return 0;                                                                                  \
+    }                                                                                              \
+                                                                                                   \
     int name##_insert(name##_t *arr, type elem, size_t i) {                                        \
         assert(arr);                                                                               \
-        assert(i <= arr->num_elems);                                                               \
                                                                                                    \
-        if (arr->num_elems == arr->max_elems) {                                                    \
-            if (arr->max_elems == 0) {                                                             \
-                arr->max_elems = 1;                                                                \
+        if (name##_insert_arr(arr, (name##_view_t){.elems = &elem, .num_elems = 1}, i) == -1) {    \
+            return -1;                                                                             \
+        }                                                                                          \
+                                                                                                   \
+        return 0;                                                                                  \
+    }                                                                                              \
+                                                                                                   \
+    int name##_insert_arr(name##_t *dst, name##_view_t src, size_t i) {                            \
+        assert(dst);                                                                               \
+        assert(i <= dst->num_elems);                                                               \
+                                                                                                   \
+        while (dst->num_elems + src.num_elems > dst->max_elems) {                                  \
+            if (dst->max_elems == 0) {                                                             \
+                dst->max_elems = src.num_elems;                                                    \
             } else {                                                                               \
-                arr->max_elems *= 2;                                                               \
-            }                                                                                      \
-                                                                                                   \
-            arr->elems = realloc(arr->elems, arr->max_elems * sizeof(type));                       \
-                                                                                                   \
-            if (!arr->elems) {                                                                     \
-                return -1;                                                                         \
+                dst->max_elems *= 2;                                                               \
             }                                                                                      \
         }                                                                                          \
                                                                                                    \
-        /* If new element is not last element, move elements after i one                           \
-           step back. */                                                                           \
-        if (i != arr->num_elems) {                                                                 \
-            memmove(arr->elems + i + 1, arr->elems + i, (arr->num_elems - i) * sizeof(type));      \
+        dst->elems = realloc(dst->elems, dst->max_elems * sizeof(type));                           \
+                                                                                                   \
+        if (!dst->elems) {                                                                         \
+            return -1;                                                                             \
         }                                                                                          \
                                                                                                    \
-        arr->elems[i]   = elem;                                                                    \
-        arr->num_elems += 1;                                                                       \
+        /* If i doesn't point to the end of dst, move elements n steps back. */                    \
+        if (i != dst->num_elems) {                                                                 \
+            memmove(dst->elems + i + src.num_elems, dst->elems + i,                                \
+                    (dst->num_elems - i) * sizeof(type));                                          \
+        }                                                                                          \
+                                                                                                   \
+        memcpy(dst->elems + i, src.elems, src.num_elems * sizeof(type));                           \
+                                                                                                   \
+        dst->num_elems += src.num_elems;                                                           \
                                                                                                    \
         return 0;                                                                                  \
     }                                                                                              \
