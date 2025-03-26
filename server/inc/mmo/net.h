@@ -54,6 +54,7 @@ typedef struct mmo_server_s {
         mmo_client_handle_arr_t new_clients;
         mmo_client_handle_arr_t removed_clients;
         mmo_client_input_arr_t client_inputs;
+        mmo_client_handle_arr_t new_terminal_sizes;
     } events;
 } mmo_server_t;
 

@@ -146,6 +146,12 @@ bool mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client, mmo_server_t
                 return false;
             }
 
+            /* Create new event. */
+            if (mmo_client_handle_arr_append(&server->events.new_terminal_sizes, client->handle) ==
+                -1) {
+                return -1;
+            }
+
             break;
         }
     }
