@@ -60,7 +60,7 @@ typedef struct mmo_server_s {
 
 void mmo_server_new(mmo_server_t *server, int num_max_clients);
 void mmo_server_free(mmo_server_t *server);
-[[nodiscard]] int mmo_server_listen(mmo_server_t *server, int port);
+void mmo_server_listen(mmo_server_t *server, int port);
 [[nodiscard]] int mmo_server_poll(mmo_server_t *server, int timeout_millisecs);
 void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t handle);
 [[nodiscard]] int mmo_server_send(mmo_server_t *server, mmo_client_handle_t handle, mmo_char_arr_view_t msg);

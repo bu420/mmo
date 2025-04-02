@@ -7,6 +7,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include <mmo/mem.h>
+
 /* Generate struct and function declarations for generic resizeable array.
    Put in header. */
 #define MMO_ARR_DECL(type, name)                                                                   \
@@ -23,13 +25,13 @@
                                                                                                    \
     name##_view_t name##_to_view(name##_t *arr);                                                   \
     void name##_new(name##_t *arr);                                                                \
-    [[nodiscard]] int name##_new_from_view(name##_t *arr, name##_view_t view);                     \
+    void name##_new_from_view(name##_t *arr, name##_view_t view);                                  \
     void name##_free(name##_t *arr);                                                               \
-    [[nodiscard]] int name##_resize(name##_t *arr, size_t num_elems);                              \
-    [[nodiscard]] int name##_append(name##_t *arr, type elem);                                     \
-    [[nodiscard]] int name##_append_arr(name##_t *dst, name##_view_t src);                         \
-    [[nodiscard]] int name##_insert(name##_t *arr, type elem, size_t i);                           \
-    [[nodiscard]] int name##_insert_arr(name##_t *dst, name##_view_t src, size_t i);               \
+    void name##_resize(name##_t *arr, size_t num_elems);                                           \
+    void name##_append(name##_t *arr, type elem);                                                  \
+    void name##_append_arr(name##_t *dst, name##_view_t src);                                      \
+    void name##_insert(name##_t *arr, type elem, size_t i);                                        \
+    void name##_insert_arr(name##_t *dst, name##_view_t src, size_t i);                            \
     void name##_remove(name##_t *arr, size_t i);                                                   \
     void name##_remove_from_ptr(name##_t *arr, type *elem);                                        \
     /* This is an optimization over free().                                                        \
@@ -54,21 +56,15 @@
         arr->max_elems = 0;                                                                        \
     }                                                                                              \
                                                                                                    \
-    int name##_new_from_view(name##_t *arr, name##_view_t view) {                                  \
+    void name##_new_from_view(name##_t *arr, name##_view_t view) {                                 \
         assert(arr);                                                                               \
                                                                                                    \
-        arr->elems = malloc(view.num_elems * sizeof(type));                                        \
-                                                                                                   \
-        if (!arr->elems) {                                                                         \
-            return -1;                                                                             \
-        }                                                                                          \
+        arr->elems = mmo_malloc(view.num_elems * sizeof(type));                                    \
                                                                                                    \
         memcpy(arr->elems, view.elems, view.num_elems * sizeof(type));                             \
                                                                                                    \
         arr->num_elems = view.num_elems;                                                           \
         arr->max_elems = view.num_elems;                                                           \
-                                                                                                   \
-        return 0;                                                                                  \
     }                                                                                              \
                                                                                                    \
     void name##_free(name##_t *arr) {                                                              \
@@ -81,52 +77,34 @@
         arr->max_elems = 0;                                                                        \
     }                                                                                              \
                                                                                                    \
-    [[nodiscard]] int name##_resize(name##_t *arr, size_t num_elems) {                             \
+    void name##_resize(name##_t *arr, size_t num_elems) {                                          \
         assert(arr);                                                                               \
                                                                                                    \
-        arr->elems = realloc(arr->elems, num_elems * sizeof(type));                                \
-                                                                                                   \
-        if (!arr->elems) {                                                                         \
-            return -1;                                                                             \
-        }                                                                                          \
+        arr->elems = mmo_realloc(arr->elems, num_elems * sizeof(type));                            \
                                                                                                    \
         arr->num_elems = num_elems;                                                                \
         arr->max_elems = num_elems;                                                                \
-                                                                                                   \
-        return 0;                                                                                  \
     }                                                                                              \
                                                                                                    \
-    int name##_append(name##_t *arr, type elem) {                                                  \
+    void name##_append(name##_t *arr, type elem) {                                                 \
         assert(arr);                                                                               \
                                                                                                    \
-        if (name##_insert(arr, elem, arr->num_elems) == -1) {                                      \
-            return -1;                                                                             \
-        }                                                                                          \
-                                                                                                   \
-        return 0;                                                                                  \
+        name##_insert(arr, elem, arr->num_elems);                                                  \
     }                                                                                              \
                                                                                                    \
     int name##_append_arr(name##_t *dst, name##_view_t src) {                                      \
         assert(dst);                                                                               \
                                                                                                    \
-        if (name##_insert_arr(dst, src, dst->num_elems) == -1) {                                   \
-            return -1;                                                                             \
-        }                                                                                          \
-                                                                                                   \
-        return 0;                                                                                  \
+        name##_insert_arr(dst, src, dst->num_elems);                                               \
     }                                                                                              \
                                                                                                    \
-    int name##_insert(name##_t *arr, type elem, size_t i) {                                        \
+    void name##_insert(name##_t *arr, type elem, size_t i) {                                       \
         assert(arr);                                                                               \
                                                                                                    \
-        if (name##_insert_arr(arr, (name##_view_t){.elems = &elem, .num_elems = 1}, i) == -1) {    \
-            return -1;                                                                             \
-        }                                                                                          \
-                                                                                                   \
-        return 0;                                                                                  \
+        name##_insert_arr(arr, (name##_view_t){.elems = &elem, .num_elems = 1}, i);                \
     }                                                                                              \
                                                                                                    \
-    int name##_insert_arr(name##_t *dst, name##_view_t src, size_t i) {                            \
+    void name##_insert_arr(name##_t *dst, name##_view_t src, size_t i) {                           \
         assert(dst);                                                                               \
         assert(i <= dst->num_elems);                                                               \
                                                                                                    \
@@ -138,11 +116,7 @@
             }                                                                                      \
         }                                                                                          \
                                                                                                    \
-        dst->elems = realloc(dst->elems, dst->max_elems * sizeof(type));                           \
-                                                                                                   \
-        if (!dst->elems) {                                                                         \
-            return -1;                                                                             \
-        }                                                                                          \
+        dst->elems = mmo_realloc(dst->elems, dst->max_elems * sizeof(type));                       \
                                                                                                    \
         /* If i doesn't point to the end of dst, move elements n steps back. */                    \
         if (i != dst->num_elems) {                                                                 \
@@ -153,8 +127,6 @@
         memcpy(dst->elems + i, src.elems, src.num_elems * sizeof(type));                           \
                                                                                                    \
         dst->num_elems += src.num_elems;                                                           \
-                                                                                                   \
-        return 0;                                                                                  \
     }                                                                                              \
                                                                                                    \
     void name##_remove(name##_t *arr, size_t i) {                                                  \

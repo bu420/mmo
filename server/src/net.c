@@ -12,9 +12,10 @@
 
 #include <mmo/packet.h>
 #include <mmo/pollfd_arr.h>
-#include "mmo/char_arr.h"
-#include "mmo/client_handle_arr.h"
-#include "mmo/client_input_arr.h"
+#include <mmo/char_arr.h>
+#include <mmo/client_handle_arr.h>
+#include <mmo/client_input_arr.h>
+#include <mmo/log.h>
 
 [[nodiscard]] static int mmo_socket_set_blocking(mmo_socket_t socket, bool blocking) {
     int flags = fcntl(socket, F_GETFL, 0);
@@ -54,13 +55,14 @@ void mmo_server_free(mmo_server_t *server) {
     mmo_client_arr_free(&server->clients);
 }
 
-int mmo_server_listen(mmo_server_t *server, int port) {
+void mmo_server_listen(mmo_server_t *server, int port) {
     /* Create socket. */
 
     server->listener = socket(AF_INET, SOCK_STREAM, 0);
 
     if (server->listener == -1) {
-        return -1;
+        mmo_log_fmt(MMO_LOG_ERROR, "socket(): failed to create listener socket.");
+        exit(EXIT_FAILURE);
     }
 
     /* Allow socket to be reusable. Avoids address-in-use error. */
@@ -71,7 +73,8 @@ int mmo_server_listen(mmo_server_t *server, int port) {
     /* Set socket to non-blocking mode. */
 
     if (mmo_socket_set_blocking(server->listener, false) == -1) {
-        return -1;
+        printf("Failed to make listener socket non-blocking.\n");
+        exit(EXIT_FAILURE);
     }
 
     /* Bind socket. */
@@ -83,23 +86,21 @@ int mmo_server_listen(mmo_server_t *server, int port) {
 
     if (bind(server->listener, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         close(server->listener);
-        return -1;
+        printf("Failed to bind listener socket.\n");
+        exit(EXIT_FAILURE);
     }
 
     /* Listen on socket. */
 
     if (listen(server->listener, server->num_max_clients) == -1) {
         close(server->listener);
-        return -1;
+        printf("Failed to listen.\n");
+        exit(EXIT_FAILURE);
     }
-
-    return 0;
 }
 
-[[nodiscard]] static int mmo_disconnect_client(mmo_server_t *server, mmo_client_t *client) {
-    if (mmo_client_handle_arr_append(&server->events.removed_clients, client->handle) == -1) {
-        return -1;
-    }
+static void mmo_disconnect_client(mmo_server_t *server, mmo_client_t *client) {
+    mmo_client_handle_arr_append(&server->events.removed_clients, client->handle);
 
     printf("Client left (%s).\n", client->ip);
 
@@ -109,8 +110,6 @@ int mmo_server_listen(mmo_server_t *server, int port) {
     mmo_char_arr_free(&client->out);
 
     mmo_client_arr_remove_from_ptr(&server->clients, client);
-
-    return 0;
 }
 
 int mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
@@ -126,19 +125,15 @@ int mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
     mmo_pollfd_arr_t polled_sockets;
     mmo_pollfd_arr_new(&polled_sockets);
 
-    if (mmo_pollfd_arr_append(&polled_sockets,
-                              (struct pollfd){.fd = server->listener, .events = POLLIN}) == -1) {
-        return -1;
-    }
+    mmo_pollfd_arr_append(&polled_sockets,
+                          (struct pollfd){.fd = server->listener, .events = POLLIN});
 
     for (size_t i = 0; i < server->clients.num_elems; i += 1) {
         mmo_client_t *client = &server->clients.elems[i];
 
         /* Check if client is set to be removed. */
         if (client->state == MMO_CLIENT_STATE_TO_BE_REMOVED) {
-            if (mmo_disconnect_client(server, client) == -1) {
-                return -1;
-            }
+            mmo_disconnect_client(server, client);
 
             continue;
         }
@@ -148,17 +143,13 @@ int mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
         if (client->state == MMO_CLIENT_STATE_VERIFIED) {
             client->state = MMO_CLIENT_STATE_ONLINE;
 
-            if (mmo_client_handle_arr_append(&server->events.new_clients, client->socket) == -1) {
-                return -1;
-            }
+            mmo_client_handle_arr_append(&server->events.new_clients, client->handle);
         }
 
         /* Otherwise add client socket to array of sockets to be polled for events. */
-        if (mmo_pollfd_arr_append(
-                &polled_sockets,
-                (struct pollfd){.fd = server->clients.elems[i].socket, .events = POLLIN}) == -1) {
-            return -1;
-        }
+        mmo_pollfd_arr_append(
+            &polled_sockets,
+            (struct pollfd){.fd = server->clients.elems[i].socket, .events = POLLIN});
     }
 
     /* poll(): Block until there's an event on atleast one socket.
@@ -167,7 +158,9 @@ int mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
     int timeout = /*server->clients.num_elems == 0 ? -1 : */ timeout_millisecs;
 
     switch (poll(polled_sockets.elems, (nfds_t)polled_sockets.num_elems, timeout)) {
-        case -1: return -1;
+        case -1:
+            printf("poll(): Error.\n");
+            exit(EXIT_FAILURE);
 
         /* Timeout. No events. */
         case 0: goto end;
@@ -220,10 +213,6 @@ int mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
         }
 
         if (mmo_client_arr_append(&server->clients, client) == -1) {
-            return -1;
-        }
-
-        if (mmo_client_handle_arr_append(&server->events.new_clients, client.handle) == -1) {
             return -1;
         }
 

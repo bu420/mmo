@@ -11,6 +11,8 @@ endif()
 
 set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mem.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/log.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/net.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/codegen.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/packet.c

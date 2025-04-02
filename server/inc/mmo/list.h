@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <assert.h>
 
+#include <mmo/mem.h>
+
 /* Generate struct and function declarations for generic doubly linked list.
    Put in header. */
 #define MMO_LIST_DECL(type, name)                                                                  \
@@ -23,9 +25,9 @@
     void name##_new(name##_t *list);                                                               \
     void name##_free(name##_t *list);                                                              \
     name##_node_t *name##_at(name##_t *list, size_t i);                                            \
-    [[nodiscard]] int name##_append(name##_t *list, type elem);                                    \
-    [[nodiscard]] int name##_insert(name##_t *list, type elem, size_t i);                          \
-    [[nodiscard]] int name##_insert_after_node(name##_t *list, type elem, name##_node_t *node);    \
+    void name##_append(name##_t *list, type elem);                                                 \
+    void name##_insert(name##_t *list, type elem, size_t i);                                       \
+    void name##_insert_after_node(name##_t *list, type elem, name##_node_t *node);                 \
     void name##_remove(name##_t *list, size_t i);
 
 /* Generate function definitions for generic doubly linked list.
@@ -73,25 +75,17 @@
         return node;                                                                               \
     }                                                                                              \
                                                                                                    \
-    int name##_append(name##_t *list, type elem) {                                                 \
+    void name##_append(name##_t *list, type elem) {                                                \
         assert(list);                                                                              \
                                                                                                    \
-        if (name##_insert(list, elem, list->num_elems) == -1) {                                    \
-            return -1;                                                                             \
-        }                                                                                          \
-                                                                                                   \
-        return 0;                                                                                  \
+        name##_insert(list, elem, list->num_elems);                                                \
     }                                                                                              \
                                                                                                    \
-    int name##_insert(name##_t *list, type elem, size_t i) {                                       \
+    void name##_insert(name##_t *list, type elem, size_t i) {                                      \
         assert(list);                                                                              \
         assert(i <= list->num_elems);                                                              \
                                                                                                    \
-        name##_node_t *node = malloc(sizeof(name##_node_t));                                       \
-                                                                                                   \
-        if (!node) {                                                                               \
-            return -1;                                                                             \
-        }                                                                                          \
+        name##_node_t *node = mmo_malloc(sizeof(name##_node_t));                                   \
                                                                                                    \
         node->data = elem;                                                                         \
         node->prev = NULL;                                                                         \
@@ -127,19 +121,13 @@
         }                                                                                          \
                                                                                                    \
         list->num_elems += 1;                                                                      \
-                                                                                                   \
-        return 0;                                                                                  \
     }                                                                                              \
                                                                                                    \
-    int name##_insert_after_node(name##_t *list, type elem, name##_node_t *node) {                 \
+    void name##_insert_after_node(name##_t *list, type elem, name##_node_t *node) {                \
         assert(list);                                                                              \
         assert(node);                                                                              \
                                                                                                    \
-        name##_node_t *new_node = malloc(sizeof(name##_node_t));                                   \
-                                                                                                   \
-        if (!new_node) {                                                                           \
-            return -1;                                                                             \
-        }                                                                                          \
+        name##_node_t *new_node = mmo_malloc(sizeof(name##_node_t));                               \
                                                                                                    \
         new_node->data = elem;                                                                     \
         new_node->prev = node;                                                                     \
@@ -149,8 +137,6 @@
         node->next       = new_node;                                                               \
                                                                                                    \
         list->num_elems += 1;                                                                      \
-                                                                                                   \
-        return 0;                                                                                  \
     }                                                                                              \
                                                                                                    \
     void name##_remove(name##_t *list, size_t i) {                                                 \

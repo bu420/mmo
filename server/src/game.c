@@ -40,7 +40,7 @@ static bool find_player(const mmo_player_t *player, void *ctx) {
     return player->client_handle == *(mmo_client_handle_t *)ctx;
 }
 
-[[nodiscard]] static int mmo_handle_new_and_old_clients(mmo_game_t *game, mmo_server_t *server) {
+[[nodiscard]] static int mmo_update_player_array(mmo_game_t *game, mmo_server_t *server) {
     /* Create new players for new clients. */
     for (size_t i = 0; i < server->events.new_clients.num_elems; i += 1) {
         mmo_client_handle_t handle = server->events.new_clients.elems[i];
@@ -60,16 +60,19 @@ static bool find_player(const mmo_player_t *player, void *ctx) {
 
     /* Remove players for disconnected clients. */
     for (size_t i = 0; i < server->events.removed_clients.num_elems; i += 1) {
-        mmo_player_arr_remove_from_ptr(
-            &game->players,
-            mmo_player_arr_find(&game->players, find_player, &server->events.new_clients.elems[i]));
+        mmo_player_t *player = mmo_player_arr_find(&game->players, find_player,
+                                                   &server->events.removed_clients.elems[i]);
+
+        if (player) {
+            mmo_player_arr_remove_from_ptr(&game->players, player);
+        }
     }
 
     return 0;
 }
 
 int mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
-    if (mmo_handle_new_and_old_clients(game, server) == -1) {
+    if (mmo_update_player_array(game, server) == -1) {
         return -1;
     }
 

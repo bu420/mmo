@@ -4,8 +4,8 @@
 #include <stdio.h>
 
 #include <mmo/net.h>
-#include "mmo/char_arr.h"
-#include "mmo/client_input_arr.h"
+#include <mmo/char_arr.h>
+#include <mmo/client_input_arr.h>
 
 static int32_t mmo_read_int32(mmo_char_arr_view_t bytes, size_t offset) {
     assert(bytes.num_elems >= sizeof(int32_t));
@@ -105,28 +105,21 @@ bool mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client, mmo_server_t
 
             int32_t num_bytes_text = mmo_read_next_int32(bytes);
 
-            for (int i = 0; i < num_bytes_text; i += 1) {
-                /* Create new event from received client input. */
+            /* Create new event from received client input. */
 
-                mmo_char_arr_t input;
-                mmo_char_arr_new(&input);
+            mmo_char_arr_t input;
+            mmo_char_arr_new(&input);
+            mmo_char_arr_resize(&input, (size_t)num_bytes_text);
 
-                if (mmo_char_arr_resize(&input, (size_t)num_bytes_text) == -1) {
-                    return -1;
-                }
+            memcpy(input.elems, bytes->elems, (size_t)num_bytes_text);
 
-                memcpy(input.elems, bytes->elems, (size_t)num_bytes_text);
+            mmo_client_input_arr_append(
+                &server->events.client_inputs,
+                (mmo_client_input_t){.client = client->handle, .input = input});
 
-                if (mmo_client_input_arr_append(
-                        &server->events.client_inputs,
-                        (mmo_client_input_t){.client = client->handle, .input = input}) == -1) {
-                    return -1;
-                }
-
-                /* Pop text from array. */
-                for (int32_t i = 0; i < num_bytes_text; i += 1) {
-                    mmo_char_arr_remove(bytes, 0);
-                }
+            /* Pop text from array. */
+            for (int32_t i = 0; i < num_bytes_text; i += 1) {
+                mmo_char_arr_remove(bytes, 0);
             }
 
             break;
@@ -147,10 +140,7 @@ bool mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client, mmo_server_t
             }
 
             /* Create new event. */
-            if (mmo_client_handle_arr_append(&server->events.new_terminal_sizes, client->handle) ==
-                -1) {
-                return -1;
-            }
+            mmo_client_handle_arr_append(&server->events.new_terminal_sizes, client->handle);
 
             break;
         }

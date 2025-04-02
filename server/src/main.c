@@ -3,13 +3,17 @@
 
 #include <mmo/game.h>
 #include <mmo/net.h>
+#include <mmo/log.h>
 
 int main(int argc, char *argv[]) {
+    /* Initialize logger. */
+    mmo_log_init();
+
     /* Read port number from command line arguments. */
 
     if (argc < 2) {
-        printf("Too few arguments. Pass: <port>\nTerminating.\n");
-        return -1;
+        mmo_log_fmt(MMO_LOG_ERROR, "Invalid arguments. Pass port number.");
+        return EXIT_FAILURE;
     }
 
     int port = atoi(argv[1]);
@@ -23,12 +27,9 @@ int main(int argc, char *argv[]) {
 
     mmo_server_t server;
     mmo_server_new(&server, 100);
+    mmo_server_listen(&server, port);
 
-    if (mmo_server_listen(&server, port) == -1) {
-        return -1;
-    }
-
-    printf("Server listening on port %d.\n", port);
+    mmo_log_fmt(MMO_LOG_INFO, "Server listening on port %d.", port);
 
     /* Main loop. */
 
