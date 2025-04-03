@@ -1,6 +1,8 @@
 build
+github-token.txt
 .vscode
 .cache
+log.txt
 
 # Prerequisites
 *.d
