@@ -92,7 +92,7 @@
         name##_insert(arr, elem, arr->num_elems);                                                  \
     }                                                                                              \
                                                                                                    \
-    int name##_append_arr(name##_t *dst, name##_view_t src) {                                      \
+    void name##_append_arr(name##_t *dst, name##_view_t src) {                                     \
         assert(dst);                                                                               \
                                                                                                    \
         name##_insert_arr(dst, src, dst->num_elems);                                               \

@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 
 #include <mmo/game.h>
@@ -35,15 +34,9 @@ int main(int argc, char *argv[]) {
 
     while (true) {
         /* Update game. */
-
-        if (mmo_game_update(&game, &server) == -1) {
-            return -1;
-        }
+        mmo_game_update(&game, &server);
 
         /* Poll for server events. */
-
-        if (mmo_server_poll(&server, 100) == -1) {
-            return -1;
-        }
+        mmo_server_poll(&server, 100);
     }
 }

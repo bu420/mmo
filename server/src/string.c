@@ -2,11 +2,11 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "mmo/char_arr.h"
-#include "mmo/char_arr_arr.h"
-#include "mmo/char_arr_view_list.h"
+#include <mmo/char_arr.h>
+#include <mmo/char_arr_arr.h>
+#include <mmo/char_arr_view_list.h>
 
-int mmo_string_split(mmo_char_arr_view_t text, char delimiter, mmo_char_arr_view_list_t *out) {
+void mmo_string_split(mmo_char_arr_view_t text, char delimiter, mmo_char_arr_view_list_t *out) {
     assert(out);
 
     mmo_char_arr_view_list_new(out);
@@ -29,7 +29,7 @@ int mmo_string_split(mmo_char_arr_view_t text, char delimiter, mmo_char_arr_view
 
         /* If token is empty, stop splitting. */
         if (start == end) {
-            return 0;
+            return;
         }
 
         /* Create new token and add it to list. */
@@ -38,15 +38,11 @@ int mmo_string_split(mmo_char_arr_view_t text, char delimiter, mmo_char_arr_view
         token.elems     = start;
         token.num_elems = (size_t)(end - start);
 
-        if (mmo_char_arr_view_list_append(out, token) == -1) {
-            return -1;
-        }
+        mmo_char_arr_view_list_append(out, token);
     }
-
-    return 0;
 }
 
-int mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char_arr_arr_t *lines) {
+void mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char_arr_arr_t *lines) {
     assert(lines);
     assert(width > 0);
 
@@ -55,10 +51,7 @@ int mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char
     /* Split up text into words. */
 
     mmo_char_arr_view_list_t words;
-
-    if (mmo_string_split(in, ' ', &words) == -1) {
-        return -1;
-    }
+    mmo_string_split(in, ' ', &words);
 
     mmo_char_arr_view_list_node_t *word = words.head;
 
@@ -79,14 +72,10 @@ int mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char
 
             /* Copy word. */
             mmo_char_arr_t new_word;
-            if (mmo_char_arr_new_from_view(&new_word, word->data) == -1) {
-                return -1;
-            }
+            mmo_char_arr_new_from_view(&new_word, word->data);
 
             /* Append. */
-            if (mmo_char_arr_arr_append(&words_on_line, new_word) == -1) {
-                return -1;
-            }
+            mmo_char_arr_arr_append(&words_on_line, new_word);
 
             word = word->next;
         }
@@ -101,17 +90,13 @@ int mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char
             int hyph_base_len = width - pos;
 
             mmo_char_arr_t base;
-            if (mmo_char_arr_new_from_view(&base, word->data) == -1) {
-                return -1;
-            }
+            mmo_char_arr_new_from_view(&base, word->data);
 
             base.elems[hyph_base_len - 1] = '-';
             base.num_elems                = (size_t)hyph_base_len;
             base.max_elems                = (size_t)hyph_base_len;
 
-            if (mmo_char_arr_arr_append(&words_on_line, base) == -1) {
-                return -1;
-            }
+            mmo_char_arr_arr_append(&words_on_line, base);
 
             /* Copy current word view, offset it to point to remainder and insert new view into
                list of all words to be processed next iteration. */
@@ -120,9 +105,7 @@ int mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char
             remainder.elems               += hyph_base_len + 1;
             remainder.num_elems           -= ((size_t)hyph_base_len + 1);
 
-            if (mmo_char_arr_view_list_insert_after_node(&words, remainder, word) == -1) {
-                return -1;
-            }
+            mmo_char_arr_view_list_insert_after_node(&words, remainder, word);
         }
 
         /* Distribute spaces evenly between words. */
@@ -133,9 +116,7 @@ int mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char
         mmo_char_arr_t line;
         mmo_char_arr_new(&line);
 
-        if (mmo_char_arr_resize(&line, (size_t)width) == -1) {
-            return -1;
-        }
+        mmo_char_arr_resize(&line, (size_t)width);
 
         pos = 0;
 
@@ -162,12 +143,8 @@ int mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char
             }
         }
 
-        if (mmo_char_arr_arr_append(lines, line) == -1) {
-            return -1;
-        }
+        mmo_char_arr_arr_append(lines, line);
     }
 
     mmo_char_arr_view_list_free(&words);
-
-    return 0;
 }

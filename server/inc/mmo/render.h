@@ -13,7 +13,7 @@
 #define MMO_ANSI_MOVE_CURSOR_TO_START (mmo_char_arr_view_t){.elems = "\x1b[H", .num_elems = 6}
 
 typedef struct mmo_cell_color_s {
-    /* If color is not set, the default color will be used.
+    /* If color is not set the default color will be used.
        If the client's terminal supports transparency, the default color will be transparency. */
     bool is_set;
 
@@ -34,9 +34,9 @@ typedef struct mmo_screen_buf_S {
     mmo_cell_arr_t cells;
 } mmo_screen_buf_t;
 
-[[nodiscard]] int mmo_screen_buf_new(mmo_screen_buf_t *buf, int width, int height);
+void mmo_screen_buf_new(mmo_screen_buf_t *buf, int width, int height);
 void mmo_screen_buf_free(mmo_screen_buf_t *buf);
-[[nodiscard]] int mmo_screen_buf_resize(mmo_screen_buf_t *buf, int width, int height);
-[[nodiscard]] int mmo_screen_buf_to_string(mmo_screen_buf_t *buf, mmo_char_arr_t *out);
+void mmo_screen_buf_resize(mmo_screen_buf_t *buf, int width, int height);
+void mmo_screen_buf_to_string(mmo_screen_buf_t *buf, mmo_char_arr_t *out);
 
 #endif

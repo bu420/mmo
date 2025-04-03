@@ -12,7 +12,7 @@ static FILE *log = NULL;
 
 void mmo_log_init() {
     /* Performance optimization: make stdout fully buffered instead of line buffered. */
-    setvbuf(stdout, NULL, _IOFBF, 4096);
+    //setvbuf(stdout, NULL, _IOFBF, 4096);
 
     log = fopen("log.txt", "w");
 
@@ -37,7 +37,7 @@ void mmo_log_fmt(const char *level, const char *fmt, ...) {
     time_t now = time(NULL);
     struct tm tm = *gmtime(&now);
     char date[100];
-    strftime(date, 100, "%FT%TZ", &tm);
+    strftime(date, 100, "%F %T", &tm);
 
     pos += snprintf(pos, 256, "[%s] [%s]: ", date, level);
 
@@ -46,7 +46,9 @@ void mmo_log_fmt(const char *level, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    pos += snprintf(pos, 766, fmt, args);
+    pos += vsnprintf(pos, 766, fmt, args);
+
+    va_end(args);
 
     memcpy(pos, "\n\0", 2);
     pos += 2;
@@ -55,6 +57,7 @@ void mmo_log_fmt(const char *level, const char *fmt, ...) {
 
     /* Write buffer to file. */
     fwrite(buf, len, 1, log);
+    fflush(log);
 
     /* Write buffer to terminal. */
     fwrite(buf, len, 1, stdout);
