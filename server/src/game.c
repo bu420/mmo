@@ -9,15 +9,27 @@
 #include <mmo/arr/player.h>
 #include <mmo/render.h>
 #include <mmo/list/player_state.h>
+#include <mmo/login_state.h>
+#include "mmo/player_state.h"
 
 void mmo_player_new(mmo_player_t *player, mmo_client_handle_t handle, int terminal_width,
-                   int terminal_height) {
+                    int terminal_height) {
     player->client_handle = handle;
 
-    
+    /* Put new players in the "login" state. */
+    {
+        mmo_login_state_t login_state;
+        mmo_login_state_new(&login_state);
 
-    mmo_player_state_list_new(&player->state_stack);
-    mmo_player_state_list_append(&player->state_stack, );
+        mmo_player_state_t state;
+        state.ctx       = &login_state;
+        state.on_free   = mmo_login_state_free;
+        state.on_update = mmo_login_state_update;
+        state.on_render = mmo_login_state_render;
+
+        mmo_player_state_list_new(&player->state_stack);
+        mmo_player_state_list_append(&player->state_stack, state);
+    }
 
     mmo_screen_buf_new(&player->screen_buf, terminal_width, terminal_height);
 
@@ -43,7 +55,7 @@ static bool find_player(const mmo_player_t *player, void *ctx) {
 }
 
 static void mmo_update_player_array(mmo_game_t *game, mmo_server_t *server) {
-    /* Create new players for new clients. */
+    /* Create new players. */
     for (size_t i = 0; i < server->events.new_clients.num_elems; i += 1) {
         mmo_client_handle_t handle = server->events.new_clients.elems[i];
 
@@ -56,7 +68,7 @@ static void mmo_update_player_array(mmo_game_t *game, mmo_server_t *server) {
         mmo_player_arr_append(&game->players, new_player);
     }
 
-    /* Remove players for disconnected clients. */
+    /* Remove players. */
     for (size_t i = 0; i < server->events.removed_clients.num_elems; i += 1) {
         mmo_player_t *player = mmo_player_arr_find(&game->players, find_player,
                                                    &server->events.removed_clients.elems[i]);
