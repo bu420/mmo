@@ -10,8 +10,8 @@ void *mmo_malloc(size_t num_bytes) {
 
     if (!mem) {
         mmo_log_fmt(MMO_LOG_ERROR,
-                    "malloc(): Heap memory allocation failure. Out of memory. Requested block "
-                    "size: %d bytes.",
+                    "malloc(): heap memory allocation failure. Out of memory. Requested block "
+                    "size: %d bytes. Possible memory leak?",
                     num_bytes);
         exit(EXIT_FAILURE);
     }
@@ -24,8 +24,8 @@ void *mmo_realloc(void *mem, size_t num_bytes) {
 
     if (!new_mem) {
         mmo_log_fmt(MMO_LOG_ERROR,
-                    "malloc(): Heap memory allocation failure. Out of memory. Requested block "
-                    "size: %d bytes.",
+                    "realloc(): heap memory allocation failure. Out of memory. Requested block "
+                    "size: %d bytes. Possible memory leak?",
                     num_bytes);
         exit(EXIT_FAILURE);
     }

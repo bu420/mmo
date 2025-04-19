@@ -11,10 +11,10 @@
 #include <sys/socket.h>
 
 #include <mmo/packet.h>
-#include <mmo/pollfd_arr.h>
-#include <mmo/char_arr.h>
-#include <mmo/client_handle_arr.h>
-#include <mmo/client_input_arr.h>
+#include <mmo/arr/pollfd.h>
+#include <mmo/arr/char.h>
+#include <mmo/arr/client_handle.h>
+#include <mmo/arr/client_input.h>
 #include <mmo/log.h>
 
 [[nodiscard]] static int mmo_socket_set_blocking(mmo_socket_t socket, bool blocking) {

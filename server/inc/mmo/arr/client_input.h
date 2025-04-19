@@ -1,8 +1,8 @@
-#ifndef MMO_CLIENT_INPUT_ARR_H
-#define MMO_CLIENT_INPUT_ARR_H
+#ifndef MMO_ARR_CLIENT_INPUT_H
+#define MMO_ARR_CLIENT_INPUT_H
 
-#include <mmo/arr.h>
-#include <mmo/char_arr.h>
+#include <mmo/arr/template.h>
+#include <mmo/arr/char.h>
 
 typedef int mmo_client_handle_t;
 

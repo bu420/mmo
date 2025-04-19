@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include <mmo/char_arr.h>
+#include <mmo/arr/char.h>
 #include <mmo/net.h>
 
 bool mmo_has_received_complete_packet(mmo_char_arr_view_t bytes);

@@ -3,10 +3,10 @@
 
 #include <arpa/inet.h>
 
-#include <mmo/char_arr.h>
-#include <mmo/client_arr.h>
-#include <mmo/client_handle_arr.h>
-#include <mmo/client_input_arr.h>
+#include <mmo/arr/char.h>
+#include <mmo/arr/client.h>
+#include <mmo/arr/client_handle.h>
+#include <mmo/arr/client_input.h>
 
 #define MMO_ALLOWED_CLIENT_VERSION 1
 #define MMO_MAX_TERMINAL_WIDTH     1024

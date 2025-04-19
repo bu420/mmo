@@ -1,5 +1,5 @@
-#ifndef MMO_ARR_H
-#define MMO_ARR_H
+#ifndef MMO_ARR_TEMPLATE_H
+#define MMO_ARR_TEMPLATE_H
 
 #include <stdlib.h>
 #include <stddef.h>

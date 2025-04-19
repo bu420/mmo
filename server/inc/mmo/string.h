@@ -1,9 +1,9 @@
 #ifndef MMO_STRING_H
 #define MMO_STRING_H
 
-#include <mmo/char_arr.h>
-#include <mmo/char_arr_arr.h>
-#include <mmo/char_arr_view_list.h>
+#include <mmo/arr/char.h>
+#include <mmo/arr/char_arr.h>
+#include <mmo/list/char_arr_view.h>
 
 void mmo_string_get_next_token(mmo_char_arr_view_t text, mmo_char_arr_view_t prev,
                                mmo_char_arr_t *out);

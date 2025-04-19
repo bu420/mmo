@@ -2,9 +2,9 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <mmo/char_arr.h>
-#include <mmo/char_arr_arr.h>
-#include <mmo/char_arr_view_list.h>
+#include <mmo/arr/char.h>
+#include <mmo/arr/char_arr.h>
+#include <mmo/list/char_arr_view.h>
 
 void mmo_string_split(mmo_char_arr_view_t text, char delimiter, mmo_char_arr_view_list_t *out) {
     assert(out);

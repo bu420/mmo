@@ -1,7 +1,7 @@
-#ifndef MMO_CELL_ARR_H
-#define MMO_CELL_ARR_H
+#ifndef MMO_ARR_CELL_H
+#define MMO_ARR_CELL_H
 
-#include <mmo/arr.h>
+#include <mmo/arr/template.h>
 
 struct mmo_cell_s;
 

@@ -2,12 +2,15 @@
 #define MMO_GAME_H
 
 #include <mmo/net.h>
-#include <mmo/char_arr.h>
-#include <mmo/player_arr.h>
+#include <mmo/arr/char.h>
+#include <mmo/arr/player.h>
 #include <mmo/render.h>
+#include <mmo/list/player_state.h>
 
 typedef struct mmo_player_s {
     mmo_client_handle_t client_handle;
+
+    mmo_player_state_list_t state_stack;
 
     mmo_screen_buf_t screen_buf;
 

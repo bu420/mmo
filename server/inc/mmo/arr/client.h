@@ -1,7 +1,7 @@
-#ifndef MMO_CLIENT_ARR_H
-#define MMO_CLIENT_ARR_H
+#ifndef MMO_ARR_CLIENT_H
+#define MMO_ARR_CLIENT_H
 
-#include <mmo/arr.h>
+#include <mmo/arr/template.h>
 
 struct mmo_client_s;
 

@@ -4,8 +4,8 @@
 #include <stdio.h>
 
 #include <mmo/net.h>
-#include <mmo/char_arr.h>
-#include <mmo/client_input_arr.h>
+#include <mmo/arr/client.h>
+#include <mmo/arr/client_input.h>
 
 static int32_t mmo_read_int32(mmo_char_arr_view_t bytes, size_t offset) {
     assert(bytes.num_elems >= sizeof(int32_t));

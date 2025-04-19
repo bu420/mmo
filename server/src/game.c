@@ -2,16 +2,22 @@
 
 #include <stdio.h>
 
-#include <mmo/char_arr.h>
-#include <mmo/client_input_arr.h>
+#include <mmo/arr/char.h>
+#include <mmo/arr/client_input.h>
 #include <mmo/net.h>
-#include <mmo/client_arr.h>
-#include <mmo/player_arr.h>
+#include <mmo/arr/client.h>
+#include <mmo/arr/player.h>
 #include <mmo/render.h>
+#include <mmo/list/player_state.h>
 
 void mmo_player_new(mmo_player_t *player, mmo_client_handle_t handle, int terminal_width,
                    int terminal_height) {
     player->client_handle = handle;
+
+    
+
+    mmo_player_state_list_new(&player->state_stack);
+    mmo_player_state_list_append(&player->state_stack, );
 
     mmo_screen_buf_new(&player->screen_buf, terminal_width, terminal_height);
 

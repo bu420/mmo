@@ -1,7 +1,7 @@
-#ifndef MMO_PLAYER_ARR_H
-#define MMO_PLAYER_ARR_H
+#ifndef MMO_ARR_PLAYER_H
+#define MMO_ARR_PLAYER_H
 
-#include <mmo/arr.h>
+#include <mmo/arr/template.h>
 
 struct mmo_player_s;
 

@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#include <mmo/cell_arr.h>
-#include <mmo/char_arr.h>
+#include <mmo/arr/cell.h>
+#include <mmo/arr/char.h>
 
 #define MMO_ANSI_RESET                (mmo_char_arr_view_t){.elems = "\x1b[0m", .num_elems = 7}
 #define MMO_ANSI_CLEAR_SCREEN         (mmo_char_arr_view_t){.elems = "\x1b[2J", .num_elems = 7}
@@ -28,7 +28,7 @@ typedef struct mmo_cell_s {
     mmo_cell_color_t bg_color;
 } mmo_cell_t;
 
-typedef struct mmo_screen_buf_S {
+typedef struct mmo_screen_buf_s {
     int width;
     int height;
     mmo_cell_arr_t cells;

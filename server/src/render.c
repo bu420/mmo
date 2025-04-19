@@ -2,8 +2,8 @@
 
 #include <stdio.h>
 
-#include <mmo/cell_arr.h>
-#include <mmo/char_arr.h>
+#include <mmo/arr/cell.h>
+#include <mmo/arr/char.h>
 
 #define MMO_FOREGROUND 38
 #define MMO_BACKGROUND 48
