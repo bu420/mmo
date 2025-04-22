@@ -16,9 +16,10 @@ set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/net.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/codegen.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/packet.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/string.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/str.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/game.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/render.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/login_state.c
 )
 
 add_executable(server ${SOURCES})
@@ -31,6 +32,9 @@ target_compile_options(server PRIVATE
     -Wpedantic
     -Werror
     -Wconversion
+    -Wshadow
+    -Wunused
+    -pedantic-errors
 )
 
 target_link_libraries(server -lm)

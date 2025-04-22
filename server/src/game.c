@@ -10,6 +10,7 @@
 #include <mmo/render.h>
 #include <mmo/list/player_state.h>
 #include <mmo/login_state.h>
+#include "mmo/arr/char_arr.h"
 #include "mmo/player_state.h"
 
 void mmo_player_new(mmo_player_t *player, mmo_client_handle_t handle, int terminal_width,
@@ -22,13 +23,13 @@ void mmo_player_new(mmo_player_t *player, mmo_client_handle_t handle, int termin
         mmo_login_state_new(&login_state);
 
         mmo_player_state_t state;
-        state.ctx       = &login_state;
-        state.on_free   = mmo_login_state_free;
-        state.on_update = mmo_login_state_update;
-        state.on_render = mmo_login_state_render;
+        state.ctx    = &login_state;
+        state.free   = mmo_login_state_free;
+        state.update = mmo_login_state_update;
+        state.render = mmo_login_state_render;
 
         mmo_player_state_list_new(&player->state_stack);
-        mmo_player_state_list_append(&player->state_stack, state);
+        mmo_player_state_list_append(&player->state_stack, &state);
     }
 
     mmo_screen_buf_new(&player->screen_buf, terminal_width, terminal_height);
@@ -40,6 +41,8 @@ void mmo_player_free(mmo_player_t *player) {
     mmo_char_arr_free(&player->name);
 
     mmo_screen_buf_free(&player->screen_buf);
+
+    mmo_player_state_list_free(&player->state_stack);
 }
 
 void mmo_game_new(mmo_game_t *game) { mmo_player_arr_new(&game->players); }
@@ -65,13 +68,15 @@ static void mmo_update_player_array(mmo_game_t *game, mmo_server_t *server) {
         mmo_player_new(&new_player, server->events.new_clients.elems[i], client->terminal_width,
                        client->terminal_height);
 
-        mmo_player_arr_append(&game->players, new_player);
+        mmo_player_arr_append(&game->players, &new_player);
     }
 
     /* Remove players. */
     for (size_t i = 0; i < server->events.removed_clients.num_elems; i += 1) {
         mmo_player_t *player = mmo_player_arr_find(&game->players, find_player,
                                                    &server->events.removed_clients.elems[i]);
+        
+        mmo_player_free(player);
 
         if (player) {
             mmo_player_arr_remove_from_ptr(&game->players, player);
@@ -82,29 +87,39 @@ static void mmo_update_player_array(mmo_game_t *game, mmo_server_t *server) {
 void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
     mmo_update_player_array(game, server);
 
-    for (size_t i = 0; i < server->events.client_inputs.num_elems; i += 1) {
-        mmo_client_input_t input = server->events.client_inputs.elems[i];
+    /* Update and render player states. */
+    for (size_t i = 0; i < game->players.num_elems; i += 1) {
+        mmo_player_t *player = &game->players.elems[i];
 
-        /* Format message to broadcast to players. */
+        /* Bundle up all client keyboard input events for the current player. */
 
-        mmo_char_arr_t msg;
-        mmo_char_arr_new(&msg);
-        mmo_char_arr_resize(&msg, 256);
+        mmo_char_arr_arr_t inputs;
+        mmo_char_arr_arr_new(&inputs);
 
-        int len = snprintf(msg.elems, msg.num_elems, "Player {%d} says: %.*s\n", input.client,
-                           (int)input.input.num_elems, input.input.elems);
+        for (size_t ii = 0; ii < server->events.client_inputs.num_elems; ii += 1) {
+            mmo_client_input_t *input = &server->events.client_inputs.elems[ii];
 
-        msg.num_elems = (size_t)len;
-
-        /* Broadcast message to all players except sender. */
-        for (size_t j = 0; j < server->clients.num_elems; j += 1) {
-            mmo_client_handle_t receiver = server->clients.elems[j].handle;
-
-            if (receiver != input.client) {
-                mmo_server_send(server, receiver, mmo_char_arr_to_view(&msg));
+            if (player->client_handle == input->client) {
+                mmo_char_arr_arr_append(&inputs, &input->input);
             }
         }
 
-        mmo_char_arr_free(&msg);
+        /* Get the current player state. */
+        mmo_player_state_t *state = &player->state_stack.tail->data;
+
+        /* Invoke update callback for player and send keyboard inputs. */
+        state->update(state->ctx, (mmo_char_arr_span_t *)&inputs);
+
+        /* Invoke render callback for player. */
+        state->render(state->ctx);
+
+        /* Convert player screen buffer to byte array and send to client. */
+
+        mmo_char_arr_t bytes;
+        mmo_char_arr_new(&bytes);
+
+        mmo_screen_buf_to_string(&player->screen_buf, &bytes);
+
+        mmo_server_send(server, player->client_handle, &bytes);
     }
 }

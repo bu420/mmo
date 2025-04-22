@@ -1,18 +1,18 @@
-#include <mmo/string.h>
+#include <mmo/str.h>
 
 #include <stdio.h>
 #include <math.h>
 #include <mmo/arr/char.h>
 #include <mmo/arr/char_arr.h>
-#include <mmo/list/char_arr_view.h>
+#include <mmo/list/char_span.h>
 
-void mmo_string_split(mmo_char_arr_view_t text, char delimiter, mmo_char_arr_view_list_t *out) {
+void mmo_string_split(mmo_char_span_t text, char delimiter, mmo_char_span_list_t *out) {
     assert(out);
 
-    mmo_char_arr_view_list_new(out);
+    mmo_char_span_list_new(out);
 
-    char *start       = text.elems;
-    char *end_of_text = &text.elems[text.num_elems];
+    const char *start       = text.elems;
+    const char *end_of_text = &text.elems[text.num_elems];
 
     while (true) {
         /* Iterate past all delimiters. */
@@ -20,7 +20,7 @@ void mmo_string_split(mmo_char_arr_view_t text, char delimiter, mmo_char_arr_vie
             start += 1;
         }
 
-        char *end = start;
+        const char *end = start;
 
         /* Iterate until end of word. */
         while (end < end_of_text && *end != delimiter) {
@@ -34,15 +34,15 @@ void mmo_string_split(mmo_char_arr_view_t text, char delimiter, mmo_char_arr_vie
 
         /* Create new token and add it to list. */
 
-        mmo_char_arr_view_t token;
+        mmo_char_span_t token;
         token.elems     = start;
         token.num_elems = (size_t)(end - start);
 
-        mmo_char_arr_view_list_append(out, token);
+        mmo_char_span_list_append(out, &token);
     }
 }
 
-void mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_char_arr_arr_t *lines) {
+void mmo_string_justify_and_hyphenate(mmo_char_span_t in, int width, mmo_char_arr_arr_t *lines) {
     assert(lines);
     assert(width > 0);
 
@@ -50,10 +50,10 @@ void mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_cha
 
     /* Split up text into words. */
 
-    mmo_char_arr_view_list_t words;
+    mmo_char_span_list_t words;
     mmo_string_split(in, ' ', &words);
 
-    mmo_char_arr_view_list_node_t *word = words.head;
+    mmo_char_span_list_node_t *word = words.head;
 
     /* For each line. */
     while (word) {
@@ -72,10 +72,11 @@ void mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_cha
 
             /* Copy word. */
             mmo_char_arr_t new_word;
-            mmo_char_arr_new_from_view(&new_word, word->data);
+            mmo_char_arr_new(&new_word);
+            mmo_char_arr_append_arr(&new_word, (mmo_char_arr_t *)&word->data);
 
             /* Append. */
-            mmo_char_arr_arr_append(&words_on_line, new_word);
+            mmo_char_arr_arr_append(&words_on_line, &new_word);
 
             word = word->next;
         }
@@ -90,22 +91,23 @@ void mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_cha
             int hyph_base_len = width - pos;
 
             mmo_char_arr_t base;
-            mmo_char_arr_new_from_view(&base, word->data);
+            mmo_char_arr_new(&base);
+            mmo_char_arr_append_arr(&base, (mmo_char_arr_t *)&word->data);
 
             base.elems[hyph_base_len - 1] = '-';
             base.num_elems                = (size_t)hyph_base_len;
             base.max_elems                = (size_t)hyph_base_len;
 
-            mmo_char_arr_arr_append(&words_on_line, base);
+            mmo_char_arr_arr_append(&words_on_line, &base);
 
             /* Copy current word view, offset it to point to remainder and insert new view into
                list of all words to be processed next iteration. */
 
-            mmo_char_arr_view_t remainder  = word->data;
-            remainder.elems               += hyph_base_len + 1;
-            remainder.num_elems           -= ((size_t)hyph_base_len + 1);
+            mmo_char_span_t remainder  = word->data;
+            remainder.elems           += hyph_base_len + 1;
+            remainder.num_elems       -= ((size_t)hyph_base_len + 1);
 
-            mmo_char_arr_view_list_insert_after_node(&words, remainder, word);
+            mmo_char_span_list_insert_after_node(&words, &remainder, word);
         }
 
         /* Distribute spaces evenly between words. */
@@ -143,8 +145,8 @@ void mmo_string_justify_and_hyphenate(mmo_char_arr_view_t in, int width, mmo_cha
             }
         }
 
-        mmo_char_arr_arr_append(lines, line);
+        mmo_char_arr_arr_append(lines, &line);
     }
 
-    mmo_char_arr_view_list_free(&words);
+    mmo_char_span_list_free(&words);
 }

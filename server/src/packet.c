@@ -6,18 +6,19 @@
 #include <mmo/net.h>
 #include <mmo/arr/client.h>
 #include <mmo/arr/client_input.h>
+#include "mmo/arr/char.h"
 
-static int32_t mmo_read_int32(mmo_char_arr_view_t bytes, size_t offset) {
-    assert(bytes.num_elems >= sizeof(int32_t));
+static int32_t mmo_read_int32(const mmo_char_arr_t *bytes, size_t offset) {
+    assert(bytes->num_elems >= sizeof(int32_t));
 
-    return (int32_t)ntohl(*(uint32_t *)(bytes.elems + offset));
+    return (int32_t)ntohl(*(uint32_t *)(bytes->elems + offset));
 }
 
 static int32_t mmo_read_next_int32(mmo_char_arr_t *bytes) {
     assert(bytes);
     assert(bytes->num_elems >= sizeof(int32_t));
 
-    int32_t result = mmo_read_int32(mmo_char_arr_to_view(bytes), 0);
+    int32_t result = mmo_read_int32(bytes, 0);
 
     /* Pop first 32-bit integer. */
     for (size_t i = 0; i < sizeof(int32_t); i += 1) {
@@ -27,8 +28,8 @@ static int32_t mmo_read_next_int32(mmo_char_arr_t *bytes) {
     return result;
 }
 
-bool mmo_has_received_complete_packet(mmo_char_arr_view_t bytes) {
-    if (bytes.num_elems < sizeof(int32_t)) {
+bool mmo_has_received_complete_packet(const mmo_char_arr_t *bytes) {
+    if (bytes->num_elems < sizeof(int32_t)) {
         return false;
     }
 
@@ -36,17 +37,17 @@ bool mmo_has_received_complete_packet(mmo_char_arr_view_t bytes) {
 
     switch (packet_id) {
         /* Handshake. 3 x 32-bit integers. */
-        case 0: return bytes.num_elems >= 4 * sizeof(int32_t);
+        case 0: return bytes->num_elems >= 4 * sizeof(int32_t);
 
         /* Text. 1 x 32-bit integer plus N bytes of text. */
         case 1: {
-            if (bytes.num_elems < 2 * sizeof(int32_t)) {
+            if (bytes->num_elems < 2 * sizeof(int32_t)) {
                 return false;
             }
 
             int32_t num_bytes = mmo_read_int32(bytes, sizeof(int32_t));
 
-            if (bytes.num_elems < 2 * sizeof(int32_t) + (size_t)num_bytes) {
+            if (bytes->num_elems < 2 * sizeof(int32_t) + (size_t)num_bytes) {
                 return false;
             }
 
@@ -55,7 +56,7 @@ bool mmo_has_received_complete_packet(mmo_char_arr_view_t bytes) {
 
         /* Terminal size. 2 x 32-bit integers. */
         case 2:
-            if (bytes.num_elems < 3 * sizeof(int32_t)) {
+            if (bytes->num_elems < 3 * sizeof(int32_t)) {
                 return false;
             }
     }
@@ -115,7 +116,7 @@ bool mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client, mmo_server_t
 
             mmo_client_input_arr_append(
                 &server->events.client_inputs,
-                (mmo_client_input_t){.client = client->handle, .input = input});
+                &(mmo_client_input_t){.client = client->handle, .input = input});
 
             /* Pop text from array. */
             for (int32_t i = 0; i < num_bytes_text; i += 1) {
@@ -140,7 +141,7 @@ bool mmo_handle_packet(mmo_char_arr_t *bytes, mmo_client_t *client, mmo_server_t
             }
 
             /* Create new event. */
-            mmo_client_handle_arr_append(&server->events.new_terminal_sizes, client->handle);
+            mmo_client_handle_arr_append(&server->events.new_terminal_sizes, &client->handle);
 
             break;
         }

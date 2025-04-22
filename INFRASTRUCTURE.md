@@ -1,3 +1,11 @@
+# Design
+The network code and game code is separated but connected via a simple event system that lets the game know a client joined, left, sent keyboard input or resized their terminal.
+
+The server is strictly single threaded with non-blocking sockets.
+
+# Code Principles
+Both `server/inc/mmo/arr/template.h` and `server/inc/mmo/list/template.h` is designed so that they essentially store references to their elements which means the owner of the containers must allocate memory for each element before appending it to the container aswell as explicitly freeing each element before calling the containers "free()" function.
+
 # Network Protocol
 The server and client uses a custom protocol to transmit text, keyboard input and terminal dimensions.
 

@@ -11,6 +11,6 @@ typedef struct mmo_client_input_s {
     mmo_char_arr_t input;
 } mmo_client_input_t;
 
-MMO_ARR_DECL(mmo_client_input_t, mmo_client_input_arr)
+MMO_ARR_DECL(mmo_client_input_t, mmo_client_input)
 
 #endif

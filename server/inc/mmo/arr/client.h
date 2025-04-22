@@ -5,6 +5,6 @@
 
 struct mmo_client_s;
 
-MMO_ARR_DECL(struct mmo_client_s, mmo_client_arr)
+MMO_ARR_DECL(struct mmo_client_s, mmo_client)
 
 #endif

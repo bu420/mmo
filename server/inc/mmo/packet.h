@@ -6,7 +6,7 @@
 #include <mmo/arr/char.h>
 #include <mmo/net.h>
 
-bool mmo_has_received_complete_packet(mmo_char_arr_view_t bytes);
+bool mmo_has_received_complete_packet(const mmo_char_arr_t *bytes);
 
 /* Returns true if packet was ok and false if packet was malformed or sent
    when it shouldn't have been. */

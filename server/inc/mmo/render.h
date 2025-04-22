@@ -6,11 +6,11 @@
 #include <mmo/arr/cell.h>
 #include <mmo/arr/char.h>
 
-#define MMO_ANSI_RESET                (mmo_char_arr_view_t){.elems = "\x1b[0m", .num_elems = 7}
-#define MMO_ANSI_CLEAR_SCREEN         (mmo_char_arr_view_t){.elems = "\x1b[2J", .num_elems = 7}
-#define MMO_ANSI_HIDE_CURSOR          (mmo_char_arr_view_t){.elems = "\x1b[?25l", .num_elems = 9}
-#define MMO_ANSI_SHOW_CURSOR          (mmo_char_arr_view_t){.elems = "\x1b[?25h", .num_elems = 9}
-#define MMO_ANSI_MOVE_CURSOR_TO_START (mmo_char_arr_view_t){.elems = "\x1b[H", .num_elems = 6}
+#define MMO_ANSI_RESET                "\x1b[0m"
+#define MMO_ANSI_CLEAR_SCREEN         "\x1b[2J"
+#define MMO_ANSI_HIDE_CURSOR          "\x1b[?25l"
+#define MMO_ANSI_SHOW_CURSOR          "\x1b[?25h"
+#define MMO_ANSI_MOVE_CURSOR_TO_START "\x1b[H"
 
 typedef struct mmo_cell_color_s {
     /* If color is not set the default color will be used.

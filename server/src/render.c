@@ -4,6 +4,7 @@
 
 #include <mmo/arr/cell.h>
 #include <mmo/arr/char.h>
+#include <mmo/str.h>
 
 #define MMO_FOREGROUND 38
 #define MMO_BACKGROUND 48
@@ -48,14 +49,16 @@ static void mmo_cell_color_to_string(mmo_cell_color_t *color, int layer, mmo_cha
 }
 
 static void mmo_cell_to_string(mmo_cell_t *cell, mmo_char_arr_t *out) {
-    mmo_char_arr_append_arr(out, MMO_ANSI_RESET);
+    mmo_char_span_t reset = {.elems = MMO_ANSI_RESET, .num_elems = MMO_STR_LEN(MMO_ANSI_RESET)};
+
+    mmo_char_arr_append_arr(out, (mmo_char_arr_t *)&reset);
 
     if (cell->fg_color.is_set) {
         mmo_char_arr_t str;
         mmo_char_arr_new(&str);
         mmo_cell_color_to_string(&cell->fg_color, MMO_FOREGROUND, &str);
 
-        mmo_char_arr_append_arr(out, mmo_char_arr_to_view(&str));
+        mmo_char_arr_append_arr(out, &str);
 
         mmo_char_arr_free(&str);
     }
@@ -65,13 +68,14 @@ static void mmo_cell_to_string(mmo_cell_t *cell, mmo_char_arr_t *out) {
         mmo_char_arr_new(&str);
         mmo_cell_color_to_string(&cell->bg_color, MMO_BACKGROUND, &str);
 
-        mmo_char_arr_append_arr(out, mmo_char_arr_to_view(&str));
+        mmo_char_arr_append_arr(out, &str);
 
         mmo_char_arr_free(&str);
     }
 
-    mmo_char_arr_append_arr(
-        out, (mmo_char_arr_view_t){.elems = (char *)&cell->char_code, .num_elems = 4});
+    mmo_char_span_t char_code = {.elems = (char *)&cell->char_code, .num_elems = 4};
+
+    mmo_char_arr_append_arr(out, (mmo_char_arr_t *)&char_code);
 }
 
 void mmo_screen_buf_to_string(mmo_screen_buf_t *buf, mmo_char_arr_t *out) {
@@ -84,7 +88,7 @@ void mmo_screen_buf_to_string(mmo_screen_buf_t *buf, mmo_char_arr_t *out) {
 
             mmo_cell_to_string(&buf->cells.elems[y * buf->width + x], &str);
 
-            mmo_char_arr_append_arr(out, mmo_char_arr_to_view(&str));
+            mmo_char_arr_append_arr(out, &str);
         }
     }
 

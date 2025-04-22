@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <assert.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
@@ -38,6 +39,8 @@
 }
 
 void mmo_server_new(mmo_server_t *server, int num_max_clients) {
+    assert(server);
+
     server->num_max_clients = num_max_clients;
 
     mmo_client_arr_new(&server->clients);
@@ -48,6 +51,8 @@ void mmo_server_new(mmo_server_t *server, int num_max_clients) {
 }
 
 void mmo_server_free(mmo_server_t *server) {
+    assert(server);
+
     mmo_client_handle_arr_free(&server->events.new_terminal_sizes);
     mmo_client_input_arr_free(&server->events.client_inputs);
     mmo_client_handle_arr_free(&server->events.removed_clients);
@@ -56,6 +61,8 @@ void mmo_server_free(mmo_server_t *server) {
 }
 
 void mmo_server_listen(mmo_server_t *server, int port) {
+    assert(server);
+
     /* Create socket. */
 
     server->listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -99,7 +106,10 @@ void mmo_server_listen(mmo_server_t *server, int port) {
 }
 
 static void mmo_disconnect_client(mmo_server_t *server, mmo_client_t *client) {
-    mmo_client_handle_arr_append(&server->events.removed_clients, client->handle);
+    assert(server);
+    assert(client);
+
+    mmo_client_handle_arr_append(&server->events.removed_clients, &client->handle);
 
     mmo_log_fmt(MMO_LOG_INFO, "Client disconnected (%s).", client->ip);
 
@@ -112,6 +122,8 @@ static void mmo_disconnect_client(mmo_server_t *server, mmo_client_t *client) {
 }
 
 static void mmo_handle_incoming_connection(mmo_server_t *server) {
+    assert(server);
+
     /* Accept connection. */
 
     struct sockaddr_storage addr;
@@ -159,12 +171,14 @@ static void mmo_handle_incoming_connection(mmo_server_t *server) {
         return;
     }
 
-    mmo_client_arr_append(&server->clients, client);
+    mmo_client_arr_append(&server->clients, &client);
 
     mmo_log_fmt(MMO_LOG_INFO, "Client connected (%s).", client.ip);
 }
 
 void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
+    assert(server);
+
     /* Reset events. */
     mmo_client_handle_arr_clear(&server->events.new_clients);
     mmo_client_handle_arr_clear(&server->events.removed_clients);
@@ -178,7 +192,7 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
     mmo_pollfd_arr_new(&polled_sockets);
 
     mmo_pollfd_arr_append(&polled_sockets,
-                          (struct pollfd){.fd = server->listener, .events = POLLIN});
+                          &(struct pollfd){.fd = server->listener, .events = POLLIN});
 
     for (size_t i = 0; i < server->clients.num_elems; i += 1) {
         mmo_client_t *client = &server->clients.elems[i];
@@ -195,13 +209,13 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
         if (client->state == MMO_CLIENT_STATE_VERIFIED) {
             client->state = MMO_CLIENT_STATE_ONLINE;
 
-            mmo_client_handle_arr_append(&server->events.new_clients, client->handle);
+            mmo_client_handle_arr_append(&server->events.new_clients, &client->handle);
         }
 
         /* Otherwise add client socket to array of sockets to be polled for events. */
         mmo_pollfd_arr_append(
             &polled_sockets,
-            (struct pollfd){.fd = server->clients.elems[i].socket, .events = POLLIN});
+            &(struct pollfd){.fd = server->clients.elems[i].socket, .events = POLLIN});
     }
 
     /* poll(): Block until there's an event on atleast one socket.
@@ -235,24 +249,24 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
 
             /* Client disconnected gracefully (0) or error (-1). */
             if (num_bytes <= 0) {
-                mmo_client_handle_arr_append(&server->events.removed_clients, client->handle);
+                mmo_client_handle_arr_append(&server->events.removed_clients, &client->handle);
                 mmo_disconnect_client(server, client);
 
                 continue;
             }
 
             /* Append received data to array. */
-            for (int j = 0; j < num_bytes; j += 1) {
-                mmo_char_arr_append(&client->in, bytes[j]);
+            for (int ii = 0; ii < num_bytes; ii += 1) {
+                mmo_char_arr_append(&client->in, &bytes[ii]);
             }
 
             /* Parse data into packets. */
 
-            if (mmo_has_received_complete_packet(mmo_char_arr_to_view(&client->in))) {
+            if (mmo_has_received_complete_packet(&client->in)) {
                 if (!mmo_handle_packet(&client->in, client, server)) {
                     /* On malformed packet remove client. */
 
-                    mmo_client_handle_arr_append(&server->events.removed_clients, client->socket);
+                    mmo_client_handle_arr_append(&server->events.removed_clients, &client->socket);
                     mmo_disconnect_client(server, client);
                 }
             }
@@ -282,6 +296,8 @@ no_events:
 }
 
 void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t handle) {
+    assert(server);
+
     for (size_t i = 0; i < server->clients.num_elems; i += 1) {
         if (server->clients.elems[i].handle == handle) {
             server->clients.elems[i].state = MMO_CLIENT_STATE_TO_BE_REMOVED;
@@ -290,12 +306,15 @@ void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t handle) 
     }
 }
 
-void mmo_server_send(mmo_server_t *server, mmo_client_handle_t handle, mmo_char_arr_view_t msg) {
+void mmo_server_send(mmo_server_t *server, mmo_client_handle_t handle, const mmo_char_arr_t *msg) {
+    assert(server);
+    assert(msg);
+
     for (size_t i = 0; i < server->clients.num_elems; i += 1) {
         if (server->clients.elems[i].handle == handle) {
             /* Append message to outgoing stream. */
-            for (size_t j = 0; j < msg.num_elems; j += 1) {
-                mmo_char_arr_append(&server->clients.elems[i].out, msg.elems[j]);
+            for (size_t ii = 0; ii < msg->num_elems; ii += 1) {
+                mmo_char_arr_append(&server->clients.elems[i].out, &msg->elems[ii]);
             }
 
             return;

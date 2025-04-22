@@ -4,6 +4,6 @@
 #include <mmo/list/template.h>
 #include <mmo/player_state.h>
 
-MMO_LIST_DECL(mmo_player_state_t, mmo_player_state_list)
+MMO_LIST_DECL(mmo_player_state_t, mmo_player_state)
 
 #endif

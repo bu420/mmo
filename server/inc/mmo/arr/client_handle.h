@@ -3,6 +3,6 @@
 
 #include <mmo/arr/template.h>
 
-MMO_ARR_DECL(int, mmo_client_handle_arr)
+MMO_ARR_DECL(int, mmo_client_handle)
 
 #endif
