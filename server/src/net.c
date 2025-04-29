@@ -138,7 +138,7 @@ static void mmo_handle_incoming_connection(mmo_server_t *server) {
     /* Set socket to non-blocking mode. */
 
     if (mmo_socket_set_blocking(socket, false) == -1) {
-        mmo_log_fmt(MMO_LOG_WARN,
+        mmo_log_fmt(MMO_LOG_WARNING,
                     "mmo_socket_set_blocking(): failed to set client socket to non-blocking. "
                     "Disconnecting client.");
         close(socket);
@@ -249,7 +249,6 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
 
             /* Client disconnected gracefully (0) or error (-1). */
             if (num_bytes <= 0) {
-                mmo_client_handle_arr_append(&server->events.removed_clients, &client->handle);
                 mmo_disconnect_client(server, client);
 
                 continue;
@@ -265,8 +264,6 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
             if (mmo_has_received_complete_packet(&client->in)) {
                 if (!mmo_handle_packet(&client->in, client, server)) {
                     /* On malformed packet remove client. */
-
-                    mmo_client_handle_arr_append(&server->events.removed_clients, &client->socket);
                     mmo_disconnect_client(server, client);
                 }
             }

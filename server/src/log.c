@@ -39,7 +39,7 @@ void mmo_log_fmt(const char *level, const char *fmt, ...) {
     char date[100];
     strftime(date, 100, "%F %T", &tm);
 
-    pos += snprintf(pos, 256, "[%s] [%s]: ", date, level);
+    pos += snprintf(pos, 256, "[%s %s]: ", date, level);
 
     /* Append arguments supplied by caller to buffer. */
 

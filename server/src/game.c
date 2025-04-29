@@ -10,11 +10,13 @@
 #include <mmo/render.h>
 #include <mmo/list/player_state.h>
 #include <mmo/login_state.h>
+#include <string.h>
 #include "mmo/arr/char_arr.h"
 #include "mmo/player_state.h"
+#include "mmo/str.h"
 
-void mmo_player_new(mmo_player_t *player, mmo_client_handle_t handle, int terminal_width,
-                    int terminal_height) {
+void mmo_player_new(mmo_player_t *player, mmo_server_t *server, mmo_client_handle_t handle,
+                    int terminal_width, int terminal_height) {
     player->client_handle = handle;
 
     /* Put new players in the "login" state. */
@@ -35,12 +37,24 @@ void mmo_player_new(mmo_player_t *player, mmo_client_handle_t handle, int termin
     mmo_screen_buf_new(&player->screen_buf, terminal_width, terminal_height);
 
     mmo_char_arr_new(&player->name);
+
+    /* Clear client screen. */
+    mmo_server_send(server, handle,
+                    &(mmo_char_arr_t){.elems     = MMO_ANSI_CLEAR_SCREEN,
+                                      .num_elems = MMO_STR_LEN(MMO_ANSI_CLEAR_SCREEN)});
 }
 
 void mmo_player_free(mmo_player_t *player) {
     mmo_char_arr_free(&player->name);
 
     mmo_screen_buf_free(&player->screen_buf);
+
+    /* Free up state stack (list). */
+
+    for (mmo_player_state_list_node_t *state = player->state_stack.head; state;
+         state                               = state->next) {
+        state->data.free(state->data.ctx);
+    }
 
     mmo_player_state_list_free(&player->state_stack);
 }
@@ -57,7 +71,7 @@ static bool find_player(const mmo_player_t *player, void *ctx) {
     return player->client_handle == *(mmo_client_handle_t *)ctx;
 }
 
-static void mmo_update_player_array(mmo_game_t *game, mmo_server_t *server) {
+static void mmo_handle_new_and_old_clients(mmo_game_t *game, mmo_server_t *server) {
     /* Create new players. */
     for (size_t i = 0; i < server->events.new_clients.num_elems; i += 1) {
         mmo_client_handle_t handle = server->events.new_clients.elems[i];
@@ -65,7 +79,7 @@ static void mmo_update_player_array(mmo_game_t *game, mmo_server_t *server) {
         mmo_client_t *client = mmo_client_arr_find(&server->clients, find_client, &handle);
 
         mmo_player_t new_player;
-        mmo_player_new(&new_player, server->events.new_clients.elems[i], client->terminal_width,
+        mmo_player_new(&new_player, server, server->events.new_clients.elems[i], client->terminal_width,
                        client->terminal_height);
 
         mmo_player_arr_append(&game->players, &new_player);
@@ -75,7 +89,9 @@ static void mmo_update_player_array(mmo_game_t *game, mmo_server_t *server) {
     for (size_t i = 0; i < server->events.removed_clients.num_elems; i += 1) {
         mmo_player_t *player = mmo_player_arr_find(&game->players, find_player,
                                                    &server->events.removed_clients.elems[i]);
-        
+
+        assert(player);
+
         mmo_player_free(player);
 
         if (player) {
@@ -85,7 +101,7 @@ static void mmo_update_player_array(mmo_game_t *game, mmo_server_t *server) {
 }
 
 void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
-    mmo_update_player_array(game, server);
+    mmo_handle_new_and_old_clients(game, server);
 
     /* Update and render player states. */
     for (size_t i = 0; i < game->players.num_elems; i += 1) {
@@ -111,14 +127,16 @@ void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
         state->update(state->ctx, (mmo_char_arr_span_t *)&inputs);
 
         /* Invoke render callback for player. */
-        state->render(state->ctx);
+        state->render(state->ctx, &player->screen_buf);
 
         /* Convert player screen buffer to byte array and send to client. */
 
         mmo_char_arr_t bytes;
         mmo_char_arr_new(&bytes);
 
-        mmo_screen_buf_to_string(&player->screen_buf, &bytes);
+        mmo_screen_buf_to_str(&player->screen_buf, &bytes);
+        memset(player->screen_buf.cells_modified_flags.elems, false,
+               player->screen_buf.cells_modified_flags.num_elems);
 
         mmo_server_send(server, player->client_handle, &bytes);
     }
