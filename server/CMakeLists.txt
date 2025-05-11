@@ -15,11 +15,12 @@ set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/log.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/net.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/codegen.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/packet.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/telnet.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/str.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/game.c
     ${CMAKE_CURRENT_SOURCE_DIR}/src/render.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/login_state.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/state/login.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/state/telnet_negotiation.c
 )
 
 add_executable(server ${SOURCES})

@@ -5,4 +5,3 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(mmo LANGUAGES C)
 
 add_subdirectory(server)
-add_subdirectory(client)
