@@ -2,12 +2,13 @@
 #define MMO_NET_H
 
 #include <arpa/inet.h>
+#include <stdint.h>
 
 #include <mmo/arr/char.h>
 #include <mmo/arr/client.h>
 #include <mmo/arr/client_handle.h>
 #include <mmo/arr/client_input.h>
-#include <stdint.h>
+#include <mmo/arr/telopt.h>
 
 #define MMO_ALLOWED_CLIENT_VERSION 1
 #define MMO_MAX_TERMINAL_WIDTH     1024
@@ -18,7 +19,6 @@ typedef mmo_socket_t mmo_client_handle_t;
 
 typedef enum mmo_client_state_e {
     MMO_CLIENT_STATE_TELNET_NEGOTIATION,
-    MMO_CLIENT_STATE_TELNET_NEGOTIATION_SUCCESSFULL,
     MMO_CLIENT_STATE_ONLINE,
     MMO_CLIENT_STATE_TO_BE_REMOVED
 } mmo_client_state_t;
@@ -53,16 +53,10 @@ typedef struct mmo_client_s {
 
     /* Telnet state machine. */
     struct {
+        mmo_telopt_arr_t opts;
         mmo_telnet_state_t state;
-        uint8_t opt;
+        uint8_t cmd;
         mmo_char_arr_t sb_buf;
-
-        /* Disable echo. */
-        bool opt_echo;
-        /* Disable half-duplex communication (suppress-go-ahead). */
-        bool opt_sga;
-        /* Enable character-at-a-time input. */
-        bool opt_linemode;
     } telnet;
 } mmo_client_t;
 

@@ -1,3 +1,4 @@
+#include "mmo/arr/telopt.h"
 #include <mmo/net.h>
 
 #include <stddef.h>
@@ -122,6 +123,7 @@ static void mmo_disconnect_client(mmo_server_t *server, mmo_client_t *client) {
 
     mmo_char_arr_free(&client->in);
     mmo_char_arr_free(&client->out);
+    mmo_telopt_arr_free(&client->telnet.opts);
     mmo_char_arr_free(&client->telnet.sb_buf);
 
     mmo_client_arr_remove_from_ptr(&server->clients, client);
@@ -170,6 +172,7 @@ static void mmo_handle_incoming_connection(mmo_server_t *server) {
 
     mmo_char_arr_new(&client.in);
     mmo_char_arr_new(&client.out);
+    mmo_telopt_arr_new(&client.telnet.opts);
     mmo_char_arr_new(&client.telnet.sb_buf);
 
     if (!inet_ntop(addr.ss_family, &(((struct sockaddr_in *)&addr)->sin_addr),
@@ -181,6 +184,13 @@ static void mmo_handle_incoming_connection(mmo_server_t *server) {
     mmo_client_arr_append(&server->clients, &client);
 
     mmo_log_fmt(MMO_LOG_INFO, "Client connected (%s).", client.ip);
+
+    mmo_telnet_negotiate_options(&client, server);
+}
+
+static bool mmo_find_unsuccessful_telopt(const mmo_telopt_t *opt, void *ctx) {
+    (void)ctx;
+    return !opt->done;
 }
 
 void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
@@ -209,12 +219,18 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
             continue;
         }
 
-        if (client->state == MMO_CLIENT_STATE_TELNET_NEGOTIATION_SUCCESSFULL) {
-            client->state = MMO_CLIENT_STATE_ONLINE;
+        if (client->state == MMO_CLIENT_STATE_TELNET_NEGOTIATION) {
+            /* Check if all telnet options have been successfully negotiated. */
+            if (!mmo_telopt_arr_find(&client->telnet.opts,
+                                     mmo_find_unsuccessful_telopt, NULL)) {
+                client->state = MMO_CLIENT_STATE_ONLINE;
 
-            /* Notify server owner of a new user. */
-            mmo_client_handle_arr_append(&server->events.new_clients,
-                                         &client->handle);
+                mmo_log_fmt(MMO_LOG_DEBUG, "Telnet negotiation successful.");
+
+                /* Notify server owner of a new user. */
+                //mmo_client_handle_arr_append(&server->events.new_clients,
+                //                             &client->handle);
+            }
         }
 
         /* Add client socket to array of sockets to be polled for events. */
