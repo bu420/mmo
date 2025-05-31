@@ -1,6 +1,8 @@
 ---
 BasedOnStyle: LLVM
 UseTab: Never
+IndentWidth: 4
 AlignConsecutiveAssignments: true
 SortIncludes: false
 AlignConsecutiveMacros: true
+IndentCaseLabels: true

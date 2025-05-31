@@ -5,7 +5,7 @@
 #include <mmo/ui/elem.h>
 
 typedef struct mmo_ui_input_s {
-  mmo_char_arr_t buf;
+    mmo_char_arr_t buf;
 } mmo_ui_input_t;
 
 void mmo_ui_input_new(mmo_ui_input_t *input);

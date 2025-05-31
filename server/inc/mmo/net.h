@@ -7,6 +7,7 @@
 #include <mmo/arr/client.h>
 #include <mmo/arr/client_handle.h>
 #include <mmo/arr/client_input.h>
+#include <stdint.h>
 
 #define MMO_ALLOWED_CLIENT_VERSION 1
 #define MMO_MAX_TERMINAL_WIDTH     1024
@@ -15,41 +16,71 @@
 typedef int mmo_socket_t;
 typedef mmo_socket_t mmo_client_handle_t;
 
+typedef enum mmo_client_state_e {
+    MMO_CLIENT_STATE_TELNET_NEGOTIATION,
+    MMO_CLIENT_STATE_TELNET_NEGOTIATION_SUCCESSFULL,
+    MMO_CLIENT_STATE_ONLINE,
+    MMO_CLIENT_STATE_TO_BE_REMOVED
+} mmo_client_state_t;
+
+typedef enum mmo_telnet_state_e {
+    MMO_TELNET_STATE_DATA,
+    MMO_TELNET_STATE_IAC,
+    MMO_TELNET_STATE_COMMAND,
+    MMO_TELNET_STATE_SB_IAC,
+    MMO_TELNET_STATE_SB,
+    MMO_TELNET_STATE_SB_DATA
+} mmo_telnet_state_t;
+
 typedef struct mmo_client_s {
-  union {
-    mmo_client_handle_t handle;
-    mmo_socket_t socket;
-  };
+    union {
+        mmo_client_handle_t handle;
+        mmo_socket_t socket;
+    };
 
-  char ip[INET_ADDRSTRLEN];
+    char ip[INET_ADDRSTRLEN];
 
-  /* Received data. */
-  mmo_char_arr_t in;
+    /* Received data. */
+    mmo_char_arr_t in;
 
-  /* Outgoing data. */
-  mmo_char_arr_t out;
+    /* Outgoing data. */
+    mmo_char_arr_t out;
 
-  int terminal_width;
-  int terminal_height;
+    int terminal_width;
+    int terminal_height;
 
-  bool to_be_removed;
+    mmo_client_state_t state;
+
+    /* Telnet state machine. */
+    struct {
+        mmo_telnet_state_t state;
+        uint8_t opt;
+        mmo_char_arr_t sb_buf;
+
+        /* Disable echo. */
+        bool opt_echo;
+        /* Disable half-duplex communication (suppress-go-ahead). */
+        bool opt_sga;
+        /* Enable character-at-a-time input. */
+        bool opt_linemode;
+    } telnet;
 } mmo_client_t;
 
 typedef struct mmo_server_s {
-  int num_max_clients;
+    int num_max_clients;
 
-  mmo_socket_t listener;
-  mmo_client_arr_t clients;
+    mmo_socket_t listener;
+    mmo_client_arr_t clients;
 
-  /* New events after calls to mmo_server_poll() are stored here.
-     They are cleared automatically at the start of each call to
-     mmo_server_poll(). */
-  struct {
-    mmo_client_handle_arr_t new_clients;
-    mmo_client_handle_arr_t removed_clients;
-    mmo_client_input_arr_t client_inputs;
-    mmo_client_handle_arr_t new_terminal_sizes;
-  } events;
+    /* New events after calls to mmo_server_poll() are stored here.
+       They are cleared automatically at the start of each call to
+       mmo_server_poll(). */
+    struct {
+        mmo_client_handle_arr_t new_clients;
+        mmo_client_handle_arr_t removed_clients;
+        mmo_client_input_arr_t client_inputs;
+        mmo_client_handle_arr_t new_terminal_sizes;
+    } events;
 } mmo_server_t;
 
 void mmo_server_new(mmo_server_t *server, int num_max_clients);

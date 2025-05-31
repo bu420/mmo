@@ -4,7 +4,7 @@
 #include <mmo/state/state.h>
 
 typedef struct mmo_login_state_s {
-  bool logged_in;
+    bool logged_in;
 } mmo_login_state_t;
 
 void mmo_login_state_new(mmo_login_state_t *state);
