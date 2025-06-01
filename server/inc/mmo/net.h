@@ -56,6 +56,8 @@ typedef struct mmo_client_s {
         mmo_telopt_arr_t opts;
         mmo_telnet_state_t state;
         uint8_t cmd;
+
+        uint8_t sb_opt;
         mmo_char_arr_t sb_buf;
     } telnet;
 } mmo_client_t;

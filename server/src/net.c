@@ -229,8 +229,6 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
                                      mmo_find_unsuccessful_telopt, NULL)) {
                 client->state = MMO_CLIENT_STATE_ONLINE;
 
-                mmo_log_fmt(MMO_LOG_DEBUG, "Telnet negotiation successful.");
-
                 /* Notify server owner of a new user. */
                 mmo_client_handle_arr_append(&server->events.new_clients,
                                              &client->handle);
