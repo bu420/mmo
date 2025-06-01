@@ -1,11 +1,11 @@
-#include "mmo/arr/char.h"
-#include "mmo/arr/telopt.h"
-#include "mmo/net.h"
-#include <__stddef_unreachable.h>
 #include <mmo/telnet.h>
 
-#include <mmo/log.h>
 #include <stdint.h>
+
+#include <mmo/log.h>
+#include <mmo/arr/char.h>
+#include <mmo/arr/telopt.h>
+#include <mmo/net.h>
 
 /* Telnet interpret-as-command byte. */
 #define MMO_IAC 0xff
@@ -19,22 +19,18 @@
 #define MMO_SE   0xf0
 
 /* Telnet options. */
-#define MMO_ECHO     1
-#define MMO_SGA      3  /* Supress-go-ahead. */
-#define MMO_NAWS     31 /* Negotiate-about-window-size. */
-#define MMO_LINEMODE 34
+#define MMO_ECHO 1
+#define MMO_SGA  3  /* Supress-go-ahead. */
+#define MMO_NAWS 31 /* Negotiate-about-window-size. */
 
 void mmo_telnet_negotiate_options(mmo_client_t *client, mmo_server_t *server) {
     /* Disable echo. */
     mmo_telopt_t echo = {false, MMO_WILL, MMO_ECHO};
     /* Disable half-duplex communication (suppress-go-ahead). */
     mmo_telopt_t sga = {false, MMO_WILL, MMO_SGA};
-    /* Enable character-at-a-time input. */
-    mmo_telopt_t linemode = {false, MMO_DONT, MMO_LINEMODE};
 
     mmo_telopt_arr_append(&client->telnet.opts, &echo);
     mmo_telopt_arr_append(&client->telnet.opts, &sga);
-    mmo_telopt_arr_append(&client->telnet.opts, &linemode);
 
     /* Send options to client. */
     MMO_FOREACH(client->telnet.opts, opt) {
@@ -76,7 +72,7 @@ static void mmo_telnet_handle_command(uint8_t opt, mmo_client_t *client,
        command. */
     if (telopt->cmd != (client->telnet.cmd ^ 6)) {
         char *msg = "Client denied one of the following telnet "
-                    "options: ECHO, SGA, LINEMODE.\n";
+                    "options: ECHO, SGA, NAWS.\n";
 
         mmo_server_send(
             server, client->handle,
@@ -149,6 +145,7 @@ void mmo_telnet_parse(mmo_char_span_t bytes, mmo_client_t *client,
 
             case MMO_TELNET_STATE_COMMAND: {
                 mmo_telnet_handle_command(byte, client, server);
+                client->telnet.state = MMO_TELNET_STATE_DATA;
                 break;
             }
 
