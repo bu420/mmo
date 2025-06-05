@@ -8,6 +8,7 @@
 #include <mmo/str.h>
 #include <mmo/log.h>
 #include <mmo/arr/bool.h>
+#include <string.h>
 
 #define MMO_FOREGROUND 38
 #define MMO_BACKGROUND 48
@@ -15,7 +16,7 @@
 void mmo_ansi_move_cursor(int x, int y, mmo_char_arr_t *out) {
     mmo_char_arr_resize(out, 64);
     out->num_elems =
-        (size_t)snprintf(out->elems, out->num_elems, "\x1b[%d;%dH", x, y);
+        (size_t)snprintf(out->elems, out->num_elems, "\x1b[%d;%dH", y, x);
 }
 
 void mmo_screen_buf_new(mmo_screen_buf_t *buf, int width, int height) {
@@ -25,9 +26,6 @@ void mmo_screen_buf_new(mmo_screen_buf_t *buf, int width, int height) {
     mmo_bool_arr_new(&buf->cells_modified_flags);
 
     mmo_screen_buf_resize(buf, width, height);
-
-    memset(buf->cells_modified_flags.elems, false,
-           buf->cells_modified_flags.num_elems);
 }
 
 void mmo_screen_buf_free(mmo_screen_buf_t *buf) {
@@ -46,11 +44,16 @@ void mmo_screen_buf_resize(mmo_screen_buf_t *buf, int width, int height) {
     mmo_cell_arr_resize(&buf->cells, (size_t)(width * height));
     mmo_bool_arr_resize(&buf->cells_modified_flags, (size_t)(width * height));
 
+    /* Flag all cells as not modified. */
+    MMO_FOREACH(buf->cells_modified_flags, modified) { *modified = false; }
+
     buf->width  = width;
     buf->height = height;
+
+    buf->should_clear = true;
 }
 
-static void mmo_cell_color_to_str(const mmo_cell_color_t *color, int layer,
+/*static void mmo_cell_color_to_str(const mmo_cell_color_t *color, int layer,
                                   mmo_char_arr_t *out) {
     assert(color);
     assert(out);
@@ -69,9 +72,9 @@ static void mmo_cell_color_to_str(const mmo_cell_color_t *color, int layer,
                        color->r, color->g, color->b);
 
     out->num_elems = (size_t)len;
-}
+}*/
 
-static bool mmo_cell_color_equals(const mmo_cell_color_t *a,
+/*static bool mmo_cell_color_equals(const mmo_cell_color_t *a,
                                   const mmo_cell_color_t *b) {
     if (!a->is_set && !b->is_set) {
         return true;
@@ -82,7 +85,7 @@ static bool mmo_cell_color_equals(const mmo_cell_color_t *a,
     }
 
     return a->r == b->r && a->g == b->g && a->b == b->b;
-}
+}*/
 
 /* prev_cell is nullble. */
 static void mmo_cell_to_str(const mmo_cell_t *cell, const mmo_cell_t *prev_cell,
@@ -90,7 +93,9 @@ static void mmo_cell_to_str(const mmo_cell_t *cell, const mmo_cell_t *prev_cell,
     assert(cell);
     assert(out);
 
-    bool update_fg = true;
+    (void)prev_cell;
+
+    /*bool update_fg = true;
     bool update_bg = true;
 
     if (prev_cell) {
@@ -111,21 +116,31 @@ static void mmo_cell_to_str(const mmo_cell_t *cell, const mmo_cell_t *prev_cell,
         mmo_cell_color_to_str(&cell->bg, MMO_BACKGROUND, &str);
         mmo_char_arr_append_arr(out, &str);
         mmo_char_arr_free(&str);
-    }
+    }*/
 
     mmo_char_arr_append(out, (char *)&cell->c);
 }
 
-void mmo_screen_buf_to_str(const mmo_screen_buf_t *buf, mmo_char_arr_t *out) {
+void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, mmo_char_arr_t *out) {
     assert(buf);
     assert(out);
 
     mmo_char_arr_t str;
     mmo_char_arr_new(&str);
 
-    bool prev_cell_modified = false;
+    /* Check if client screen needs to be cleared. */
+    if (buf->should_clear) {
+        mmo_char_arr_append_arr(
+            out,
+            &(mmo_char_arr_t){.elems     = MMO_ANSI_CLEAR_SCREEN,
+                              .num_elems = MMO_STR_LEN(MMO_ANSI_CLEAR_SCREEN)});
+        buf->should_clear = false;
+    }
 
     for (int y = 0; y < buf->height; y += 1) {
+        /* Flag whether the cell to the left of this was modified. */
+        bool prev_cell_modified = false;
+
         for (int x = 0; x < buf->width; x += 1) {
             mmo_char_arr_clear(&str);
 
@@ -156,6 +171,8 @@ void mmo_screen_buf_set(mmo_screen_buf_t *buf, int x, int y,
     assert(buf);
     assert(cell);
 
-    buf->cells.elems[y * buf->width + x]                = *cell;
-    buf->cells_modified_flags.elems[y * buf->width + x] = true;
+    if (cell->c != buf->cells.elems[y * buf->width + x].c) {
+        buf->cells.elems[y * buf->width + x]                = *cell;
+        buf->cells_modified_flags.elems[y * buf->width + x] = true;
+    }
 }

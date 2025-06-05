@@ -37,12 +37,13 @@ typedef struct mmo_screen_buf_s {
     int height;
     mmo_cell_arr_t cells;
     mmo_bool_arr_t cells_modified_flags;
+    bool should_clear;
 } mmo_screen_buf_t;
 
 void mmo_screen_buf_new(mmo_screen_buf_t *buf, int width, int height);
 void mmo_screen_buf_free(mmo_screen_buf_t *buf);
 void mmo_screen_buf_resize(mmo_screen_buf_t *buf, int width, int height);
-void mmo_screen_buf_to_str(const mmo_screen_buf_t *buf, mmo_char_arr_t *out);
+void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, mmo_char_arr_t *out);
 void mmo_screen_buf_set(mmo_screen_buf_t *buf, int x, int y,
                         const mmo_cell_t *cell);
 

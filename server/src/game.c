@@ -1,11 +1,10 @@
-#include "mmo/arr/template.h"
-#include "mmo/mem.h"
-#include "mmo/state/login.h"
 #include <mmo/game.h>
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
+#include <mmo/mem.h>
 #include <mmo/arr/char.h>
 #include <mmo/arr/client_input.h>
 #include <mmo/net.h>
@@ -15,10 +14,13 @@
 #include <mmo/list/player_state.h>
 #include <mmo/arr/char_arr.h>
 #include <mmo/str.h>
+#include <mmo/state/login.h>
 
 void mmo_player_new(mmo_player_t *player, mmo_server_t *server,
                     mmo_client_handle_t handle, int terminal_width,
                     int terminal_height) {
+    (void)server;
+
     player->client_handle = handle;
 
     /* Put new players in the "telnet negotiation" state. */
@@ -39,12 +41,6 @@ void mmo_player_new(mmo_player_t *player, mmo_server_t *server,
     mmo_screen_buf_new(&player->screen_buf, terminal_width, terminal_height);
 
     mmo_char_arr_new(&player->name);
-
-    /* Clear client screen. */
-    mmo_server_send(
-        server, handle,
-        &(mmo_char_arr_t){.elems     = MMO_ANSI_CLEAR_SCREEN,
-                          .num_elems = MMO_STR_LEN(MMO_ANSI_CLEAR_SCREEN)});
 }
 
 void mmo_player_free(mmo_player_t *player) {
@@ -106,11 +102,32 @@ static void mmo_handle_new_and_old_clients(mmo_game_t *game,
     }
 }
 
+static bool mmo_find_client(const mmo_client_t *client, void *ctx) {
+    return client->handle == *(mmo_client_handle_t *)ctx;
+}
+
 void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
     mmo_handle_new_and_old_clients(game, server);
 
     /* Update and render player states. */
     MMO_FOREACH(game->players, player) {
+        /* Handle updated terminal dimensions events. */
+        MMO_FOREACH(server->events.new_terminal_sizes, handle) {
+            if (player->client_handle == *handle) {
+                /* Find client because new terminal dimensions are stored there. */
+                mmo_client_t *client = mmo_client_arr_find(
+                    &server->clients, mmo_find_client, handle);
+                assert(client && "Client must exist.");
+
+                /* Resize player's screen buffer. */
+                mmo_screen_buf_resize(&player->screen_buf,
+                                      client->terminal_width,
+                                      client->terminal_height);
+
+                break;
+            }
+        }
+
         /* Bundle up all client keyboard input events for the current player. */
 
         mmo_char_arr_arr_t inputs;
@@ -119,6 +136,7 @@ void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
         MMO_FOREACH(server->events.client_inputs, input) {
             if (player->client_handle == input->client) {
                 mmo_char_arr_arr_append(&inputs, &input->input);
+                break;
             }
         }
 

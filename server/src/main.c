@@ -3,6 +3,7 @@
 #include <mmo/game.h>
 #include <mmo/net.h>
 #include <mmo/log.h>
+#include <unistd.h>
 
 int main(int argc, char *argv[]) {
     /* Initialize logger. */

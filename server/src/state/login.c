@@ -4,10 +4,16 @@
 
 #include <mmo/log.h>
 #include <mmo/render.h>
+#include <mmo/arr/client_input.h>
 
 void mmo_login_state_new(mmo_login_state_t *state) { state->logged_in = false; }
 
 void mmo_login_state_free(void *ctx) { (void)ctx; }
+
+static bool mmo_find_terminal_size_event(const mmo_client_handle_t *handle,
+                                         void *ctx) {
+    return *handle == *(mmo_client_handle_t *)ctx;
+}
 
 void mmo_login_state_update(void *ctx, mmo_client_handle_t handle,
                             mmo_server_t *server,
@@ -16,43 +22,54 @@ void mmo_login_state_update(void *ctx, mmo_client_handle_t handle,
     (void)handle;
     (void)server;
     (void)client_keyboard_inputs;
+
+    /* Check if there's an event for new client terminal dimensions. */
+    if (mmo_client_handle_arr_find(&server->events.new_terminal_sizes,
+                                   mmo_find_terminal_size_event, &handle)) {
+    }
+}
+
+static void mmo_render_text_center(char *txt, int len, int y,
+                                   mmo_screen_buf_t *screen_buf) {
+    mmo_cell_t cell;
+    cell.fg.is_set = false;
+    cell.bg.is_set = false;
+
+    for (int i = 0; i < len; i += 1) {
+        cell.c = txt[i];
+
+        mmo_screen_buf_set(screen_buf, screen_buf->width / 2 - len / 2 + i, y,
+                           &cell);
+    }
 }
 
 void mmo_login_state_render(void *ctx, mmo_screen_buf_t *screen_buf) {
     (void)ctx;
 
-    // mmo_login_state_t *state = (mmo_login_state_t *)ctx;
-
-    char *msg = "Hello and welcome to    !";
-
-    for (int i = 0; i < (int)strlen(msg); i += 1) {
-        mmo_cell_t cell;
-        cell.c         = msg[i];
-        cell.fg.is_set = false;
-        cell.bg.is_set = false;
-
-        if (false) {
-            return;
-        }
-
-        mmo_screen_buf_set(screen_buf, i, 0, &cell);
-    }
+    /* Draw border. */
 
     mmo_cell_t cell;
-    cell.c         = 'm';
+    cell.c         = '.';
     cell.fg.is_set = false;
-    cell.fg.r      = 255;
-    cell.fg.g      = 0;
-    cell.fg.b      = 0;
     cell.bg.is_set = false;
-    mmo_screen_buf_set(screen_buf, 21, 0, &cell);
 
-    cell.fg.r = 0;
-    cell.fg.g = 255;
-    mmo_screen_buf_set(screen_buf, 22, 0, &cell);
+    for (int x = 0; x < screen_buf->width - 1; x += 2) {
+        mmo_screen_buf_set(screen_buf, x, 0, &cell);
+        mmo_screen_buf_set(screen_buf, x, screen_buf->height - 1, &cell);
+    }
 
-    cell.c    = 'o';
-    cell.fg.g = 0;
-    cell.fg.b = 255;
-    mmo_screen_buf_set(screen_buf, 23, 0, &cell);
+    for (int y = 0; y < screen_buf->height; y += 1) {
+        mmo_screen_buf_set(screen_buf, 0, y, &cell);
+        mmo_screen_buf_set(screen_buf, screen_buf->width - 1, y, &cell);
+    }
+
+    /* Draw text in center. */
+
+    char *title    = "Welcome to Fisherman";
+    char *subtitle = "A multiplayer fishing game";
+
+    mmo_render_text_center(title, (int)strlen(title), screen_buf->height / 2,
+                           screen_buf);
+    mmo_render_text_center(subtitle, (int)strlen(subtitle),
+                           screen_buf->height / 2 + 1, screen_buf);
 }
