@@ -1,5 +1,3 @@
-#include "mmo/arr/bmp_pixel.h"
-#include "mmo/mem.h"
 #include <mmo/render.h>
 
 #include <stddef.h>
@@ -12,6 +10,10 @@
 #include <mmo/log.h>
 #include <mmo/arr/bool.h>
 #include <string.h>
+#include <mmo/arr/bmp_pixel.h>
+#include <mmo/mem.h>
+
+#define MMO_ASCII " .:-=+*#%@"
 
 #define MMO_FOREGROUND 38
 #define MMO_BACKGROUND 48
@@ -183,12 +185,20 @@ void mmo_screen_buf_set(mmo_screen_buf_t *buf, int x, int y,
     }
 }
 
+void mmo_cell_buf_new(mmo_cell_buf_t *buf) {
+    mmo_cell_arr_new(&buf->cells);
+    buf->width  = 0;
+    buf->height = 0;
+}
+
+void mmo_cell_buf_free(mmo_cell_buf_t *buf) { mmo_cell_arr_free(&buf->cells); }
+
 static int mmo_to_int(const uint8_t *header, int offset) {
     return header[offset + 0] | (header[offset + 1] << 8) |
            (header[offset + 2] << 16) | (header[offset + 3] << 24);
 }
 
-void mmo_load_bmp(const char *path, mmo_bmp_t *bmp) {
+void mmo_bmp_load(const char *path, mmo_bmp_t *bmp) {
     assert(path);
     assert(bmp);
 
@@ -230,19 +240,52 @@ void mmo_load_bmp(const char *path, mmo_bmp_t *bmp) {
 
     for (int y = 0; y < height; y += 1) {
         for (int x = 0; x < width; x += 1) {
-            mmo_bmp_pixel_t *pixel = &bmp->pixels.elems[y * width + x];
+            const uint8_t *src =
+                &data[((height - 1 - y) * (width + padding) + x) * pixel_size];
+            mmo_bmp_pixel_t *dst = &bmp->pixels.elems[y * width + x];
 
-            int i = ((height - 1 - y) * (width + padding) + x) * pixel_size;
+            dst->transparent = src[3] < 128;
 
-            pixel->transparent = *(data + i + 3) < 128;
-
-            if (!pixel->transparent) {
-                pixel->r = *(data + i + 2);
-                pixel->g = *(data + i + 1);
-                pixel->b = *(data + i + 0);
+            if (!dst->transparent) {
+                dst->r = src[2];
+                dst->g = src[1];
+                dst->b = src[0];
             }
         }
     }
 
     free(data);
+}
+
+void mmo_bmp_render(mmo_bmp_t *bmp, mmo_cell_buf_t *buf, int width,
+                    int height) {
+    assert(bmp);
+    assert(buf);
+
+    mmo_cell_arr_resize(&buf->cells, (size_t)(width * height));
+    buf->width  = width;
+    buf->height = height;
+
+    for (int x = 0; x < width; x += 1) {
+        for (int y = 0; y < height; y += 1) {
+            int src_x = (int)((float)x / (float)width * (float)bmp->width);
+            int src_y = (int)((float)y / (float)height * (float)bmp->height);
+
+            const mmo_bmp_pixel_t *src =
+                &bmp->pixels.elems[src_y * bmp->width + src_x];
+            mmo_cell_t *dst = &buf->cells.elems[y * width + x];
+
+            if (src->transparent) {
+                dst->c = ' ';
+                continue;
+            }
+
+            float brightness =
+                ((float)src->r + (float)src->g + (float)src->b) / 3.f;
+            int index =
+                (int)(brightness / 256.0f * (float)MMO_STR_LEN(MMO_ASCII));
+
+            dst->c = MMO_ASCII[index];
+        }
+    }
 }

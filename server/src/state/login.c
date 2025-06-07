@@ -1,3 +1,4 @@
+#include <math.h>
 #include <mmo/state/login.h>
 
 #include <stdint.h>
@@ -9,7 +10,7 @@
 void mmo_login_state_new(mmo_login_state_t *state) {
     state->logged_in = false;
 
-    mmo_load_bmp("perch.bmp", &state->fish);
+    mmo_bmp_load("perch.bmp", &state->fish);
 }
 
 void mmo_login_state_free(void *ctx) { (void)ctx; }
@@ -38,7 +39,7 @@ static void mmo_render_text_center(char *txt, int len, int y,
 }
 
 void mmo_login_state_render(void *ctx, mmo_screen_buf_t *screen_buf) {
-    (void)ctx;
+    mmo_login_state_t *state = (mmo_login_state_t *)ctx;
 
     /* Draw border. */
 
@@ -66,4 +67,23 @@ void mmo_login_state_render(void *ctx, mmo_screen_buf_t *screen_buf) {
                            screen_buf);
     mmo_render_text_center(subtitle, (int)strlen(subtitle),
                            screen_buf->height / 2 + 1, screen_buf);
+
+    /* Draw bitmap. */
+
+    mmo_cell_buf_t fish;
+    mmo_cell_buf_new(&fish);
+
+    mmo_bmp_render(&state->fish, &fish, 180, 40);
+
+    for (int x = 0; x < fish.width; x += 1) {
+        for (int y = 0; y < fish.height; y += 1) {
+            cell.c = fish.cells.elems[y * fish.width + x].c;
+
+            mmo_screen_buf_set(
+                screen_buf, screen_buf->width / 2 - fish.width / 2 + x,
+                screen_buf->height / 2 - fish.height / 2 + y, &cell);
+        }
+    }
+
+    mmo_cell_buf_free(&fish);
 }
