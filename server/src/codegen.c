@@ -12,6 +12,7 @@
 #include <mmo/arr/cell.h>
 #include <mmo/arr/bool.h>
 #include <mmo/arr/telopt.h>
+#include <mmo/arr/bmp_pixel.h>
 
 #include <mmo/list/template.h>
 #include <mmo/list/char_arr.h>
@@ -28,6 +29,7 @@ MMO_ARR_DEF(mmo_client_input_t, mmo_client_input)
 MMO_ARR_DEF(mmo_cell_t, mmo_cell)
 MMO_ARR_DEF(bool, mmo_bool)
 MMO_ARR_DEF(mmo_telopt_t, mmo_telopt)
+MMO_ARR_DEF(mmo_bmp_pixel_t, mmo_bmp_pixel)
 
 MMO_LIST_DEF(mmo_char_arr_t, mmo_char_arr)
 MMO_LIST_DEF(mmo_char_span_t, mmo_char_span)

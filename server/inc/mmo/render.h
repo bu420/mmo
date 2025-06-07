@@ -5,7 +5,8 @@
 
 #include <mmo/arr/cell.h>
 #include <mmo/arr/char.h>
-#include "mmo/arr/bool.h"
+#include <mmo/arr/bool.h>
+#include <mmo/arr/bmp_pixel.h>
 
 #define MMO_ANSI_RESET                "\x1b[0m"
 #define MMO_ANSI_CLEAR_SCREEN         "\x1b[2J"
@@ -46,5 +47,13 @@ void mmo_screen_buf_resize(mmo_screen_buf_t *buf, int width, int height);
 void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, mmo_char_arr_t *out);
 void mmo_screen_buf_set(mmo_screen_buf_t *buf, int x, int y,
                         const mmo_cell_t *cell);
+
+typedef struct mmo_bmp_s {
+    int width;
+    int height;
+    mmo_bmp_pixel_arr_t pixels;
+} mmo_bmp_t;
+
+void mmo_load_bmp(const char *path, mmo_bmp_t *bmp);
 
 #endif

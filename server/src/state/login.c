@@ -6,14 +6,13 @@
 #include <mmo/render.h>
 #include <mmo/arr/client_input.h>
 
-void mmo_login_state_new(mmo_login_state_t *state) { state->logged_in = false; }
+void mmo_login_state_new(mmo_login_state_t *state) {
+    state->logged_in = false;
+
+    mmo_load_bmp("perch.bmp", &state->fish);
+}
 
 void mmo_login_state_free(void *ctx) { (void)ctx; }
-
-static bool mmo_find_terminal_size_event(const mmo_client_handle_t *handle,
-                                         void *ctx) {
-    return *handle == *(mmo_client_handle_t *)ctx;
-}
 
 void mmo_login_state_update(void *ctx, mmo_client_handle_t handle,
                             mmo_server_t *server,
@@ -22,11 +21,6 @@ void mmo_login_state_update(void *ctx, mmo_client_handle_t handle,
     (void)handle;
     (void)server;
     (void)client_keyboard_inputs;
-
-    /* Check if there's an event for new client terminal dimensions. */
-    if (mmo_client_handle_arr_find(&server->events.new_terminal_sizes,
-                                   mmo_find_terminal_size_event, &handle)) {
-    }
 }
 
 static void mmo_render_text_center(char *txt, int len, int y,
@@ -49,7 +43,7 @@ void mmo_login_state_render(void *ctx, mmo_screen_buf_t *screen_buf) {
     /* Draw border. */
 
     mmo_cell_t cell;
-    cell.c         = '.';
+    cell.c         = '~';
     cell.fg.is_set = false;
     cell.bg.is_set = false;
 

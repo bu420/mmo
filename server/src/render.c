@@ -1,5 +1,8 @@
+#include "mmo/arr/bmp_pixel.h"
+#include "mmo/mem.h"
 #include <mmo/render.h>
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -15,8 +18,8 @@
 
 void mmo_ansi_move_cursor(int x, int y, mmo_char_arr_t *out) {
     mmo_char_arr_resize(out, 64);
-    out->num_elems =
-        (size_t)snprintf(out->elems, out->num_elems, "\x1b[%d;%dH", y, x);
+    out->num_elems = (size_t)snprintf(out->elems, out->num_elems, "\x1b[%d;%dH",
+                                      y + 1, x + 1);
 }
 
 void mmo_screen_buf_new(mmo_screen_buf_t *buf, int width, int height) {
@@ -43,6 +46,9 @@ void mmo_screen_buf_resize(mmo_screen_buf_t *buf, int width, int height) {
 
     mmo_cell_arr_resize(&buf->cells, (size_t)(width * height));
     mmo_bool_arr_resize(&buf->cells_modified_flags, (size_t)(width * height));
+
+    /* Reset all cells. */
+    MMO_FOREACH(buf->cells, cell) { cell->c = ' '; }
 
     /* Flag all cells as not modified. */
     MMO_FOREACH(buf->cells_modified_flags, modified) { *modified = false; }
@@ -175,4 +181,68 @@ void mmo_screen_buf_set(mmo_screen_buf_t *buf, int x, int y,
         buf->cells.elems[y * buf->width + x]                = *cell;
         buf->cells_modified_flags.elems[y * buf->width + x] = true;
     }
+}
+
+static int mmo_to_int(const uint8_t *header, int offset) {
+    return header[offset + 0] | (header[offset + 1] << 8) |
+           (header[offset + 2] << 16) | (header[offset + 3] << 24);
+}
+
+void mmo_load_bmp(const char *path, mmo_bmp_t *bmp) {
+    assert(path);
+    assert(bmp);
+
+    FILE *file = fopen(path, "rb");
+
+    if (!file) {
+        mmo_log_fmt(MMO_LOG_ERROR,
+                    "mmo_load_bmp(): file %s could not be opened.", path);
+        exit(EXIT_FAILURE);
+    }
+
+    uint8_t header[54];
+    fread(header, 1, 54, file);
+
+    int file_size   = mmo_to_int(header, 2);
+    int header_size = mmo_to_int(header, 10);
+    int width       = mmo_to_int(header, 18);
+    int height      = mmo_to_int(header, 22);
+    int pixel_size  = header[28] / 8;
+    int padding     = (4 - width * pixel_size % 4) % 4;
+
+    if (pixel_size != 4) {
+        mmo_log_fmt(MMO_LOG_ERROR,
+                    "mmo_load_bmp(): file %s has incompatible pixel size, must "
+                    "be 4 bytes per pixel, was %d.",
+                    path, pixel_size);
+        exit(EXIT_FAILURE);
+    }
+
+    mmo_bmp_pixel_arr_new(&bmp->pixels);
+    mmo_bmp_pixel_arr_resize(&bmp->pixels, (size_t)(width * height));
+    bmp->width  = width;
+    bmp->height = height;
+
+    uint8_t *data = mmo_malloc((size_t)(file_size - header_size));
+    fseek(file, header_size, SEEK_SET);
+    fread(data, 1, (size_t)(file_size - header_size), file);
+    fclose(file);
+
+    for (int y = 0; y < height; y += 1) {
+        for (int x = 0; x < width; x += 1) {
+            mmo_bmp_pixel_t *pixel = &bmp->pixels.elems[y * width + x];
+
+            int i = ((height - 1 - y) * (width + padding) + x) * pixel_size;
+
+            pixel->transparent = *(data + i + 3) < 128;
+
+            if (!pixel->transparent) {
+                pixel->r = *(data + i + 2);
+                pixel->g = *(data + i + 1);
+                pixel->b = *(data + i + 0);
+            }
+        }
+    }
+
+    free(data);
 }
