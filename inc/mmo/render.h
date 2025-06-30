@@ -8,6 +8,9 @@
 #include <mmo/arr/bool.h>
 #include <mmo/arr/bmp_pixel.h>
 
+#define MMO_COLS 80
+#define MMO_ROWS 24
+
 #define MMO_ANSI_RESET                "\x1b[0m"
 #define MMO_ANSI_CLEAR_SCREEN         "\x1b[2J"
 #define MMO_ANSI_HIDE_CURSOR          "\x1b[?25l"
@@ -17,11 +20,7 @@
 void mmo_ansi_move_cursor(int x, int y, mmo_char_arr_t *out);
 
 typedef struct mmo_cell_color_s {
-    /* If color is not set the default color will be used.
-       If the client terminal supports transparency, the default "color" will be
-       transparency. */
     bool is_set;
-
     uint8_t r;
     uint8_t g;
     uint8_t b;

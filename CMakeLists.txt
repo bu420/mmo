@@ -11,15 +11,9 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-set(SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/log.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/net.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/telnet.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/codegen.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/game.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/render.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/state/login.c
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc/mmo/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
 )
 
 add_executable(server ${SOURCES})

@@ -10,11 +10,8 @@
 
 typedef struct mmo_player_s {
     mmo_client_handle_t client_handle;
-
     mmo_player_state_list_t state_stack;
-
     mmo_screen_buf_t screen_buf;
-
     mmo_char_arr_t name;
 } mmo_player_t;
 
