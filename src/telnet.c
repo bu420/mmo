@@ -117,9 +117,6 @@ static void mmo_handle_subnegotiation(mmo_client_t *client,
             client->terminal_width  = buf[0] << 8 | buf[1];
             client->terminal_height = buf[2] << 8 | buf[3];
 
-            mmo_client_handle_arr_append(&server->events.new_terminal_sizes,
-                                         &client->handle);
-
             break;
         }
     }

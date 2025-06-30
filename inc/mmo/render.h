@@ -18,6 +18,7 @@
 #define MMO_ANSI_MOVE_CURSOR_TO_START "\x1b[H"
 
 void mmo_ansi_move_cursor(int x, int y, mmo_char_arr_t *out);
+void mmo_ansi_move_cursor_relative(int dx, int dy, mmo_char_arr_t *out);
 
 typedef struct mmo_cell_color_s {
     bool is_set;
@@ -32,18 +33,17 @@ typedef struct mmo_cell_s {
     mmo_cell_color_t bg;
 } mmo_cell_t;
 
+/* Number of cells = MMO_COLS x MMO_ROWS. */
 typedef struct mmo_screen_buf_s {
-    int width;
-    int height;
     mmo_cell_arr_t cells;
     mmo_bool_arr_t cells_modified_flags;
     bool should_clear;
 } mmo_screen_buf_t;
 
-void mmo_screen_buf_new(mmo_screen_buf_t *buf, int width, int height);
+void mmo_screen_buf_new(mmo_screen_buf_t *buf);
 void mmo_screen_buf_free(mmo_screen_buf_t *buf);
-void mmo_screen_buf_resize(mmo_screen_buf_t *buf, int width, int height);
-void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, mmo_char_arr_t *out);
+void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, int term_cols, int term_rows,
+                           mmo_char_arr_t *out);
 void mmo_screen_buf_set(mmo_screen_buf_t *buf, int x, int y,
                         const mmo_cell_t *cell);
 

@@ -52,13 +52,11 @@ void mmo_server_new(mmo_server_t *server, int num_max_clients) {
     mmo_client_handle_arr_new(&server->events.new_clients);
     mmo_client_handle_arr_new(&server->events.removed_clients);
     mmo_client_input_arr_new(&server->events.client_inputs);
-    mmo_client_handle_arr_new(&server->events.new_terminal_sizes);
 }
 
 void mmo_server_free(mmo_server_t *server) {
     assert(server);
 
-    mmo_client_handle_arr_free(&server->events.new_terminal_sizes);
     mmo_client_input_arr_free(&server->events.client_inputs);
     mmo_client_handle_arr_free(&server->events.removed_clients);
     mmo_client_handle_arr_free(&server->events.new_clients);
@@ -204,10 +202,9 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
     mmo_client_handle_arr_clear(&server->events.new_clients);
     mmo_client_handle_arr_clear(&server->events.removed_clients);
     mmo_client_input_arr_clear(&server->events.client_inputs);
-    mmo_client_handle_arr_clear(&server->events.new_terminal_sizes);
 
     /* Array of file descriptors (sockets) to be polled.
-       Set first element to listener socket and rest to client sockets. */
+       Set first element to listener socket and the rest to client sockets. */
 
     mmo_pollfd_arr_t polled_sockets;
     mmo_pollfd_arr_new(&polled_sockets);
@@ -241,8 +238,7 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
             &(struct pollfd){.fd = client->socket, .events = POLLIN});
     }
 
-    /* poll(): Block until there's an event on atleast one socket.
-       While there are no connected clients, wait indefinitely (-1). */
+    /* poll(): While there are no connected clients, wait indefinitely (-1). */
 
     int timeout = server->clients.num_elems == 0 ? -1 : timeout_millisecs;
 

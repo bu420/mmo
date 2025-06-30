@@ -11,8 +11,6 @@
 #include <mmo/arr/telopt.h>
 
 #define MMO_ALLOWED_CLIENT_VERSION 1
-#define MMO_MAX_TERMINAL_WIDTH     1024
-#define MMO_MAX_TERMINAL_HEIGHT    1024
 
 typedef int mmo_socket_t;
 typedef mmo_socket_t mmo_client_handle_t;
@@ -75,7 +73,6 @@ typedef struct mmo_server_s {
         mmo_client_handle_arr_t new_clients;
         mmo_client_handle_arr_t removed_clients;
         mmo_client_input_arr_t client_inputs;
-        mmo_client_handle_arr_t new_terminal_sizes;
     } events;
 } mmo_server_t;
 

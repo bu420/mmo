@@ -15,13 +15,12 @@
 #include <mmo/state/login.h>
 
 void mmo_player_new(mmo_player_t *player, mmo_server_t *server,
-                    mmo_client_handle_t handle, int terminal_width,
-                    int terminal_height) {
+                    mmo_client_handle_t handle) {
     (void)server;
 
     player->client_handle = handle;
 
-    /* Put new players in the "telnet negotiation" state. */
+    /* Put new players in the login state. */
     {
         mmo_login_state_t *login_state = malloc(sizeof(mmo_login_state_t));
         assert(login_state);
@@ -37,7 +36,7 @@ void mmo_player_new(mmo_player_t *player, mmo_server_t *server,
         mmo_player_state_list_append(&player->state_stack, &state);
     }
 
-    mmo_screen_buf_new(&player->screen_buf, terminal_width, terminal_height);
+    mmo_screen_buf_new(&player->screen_buf);
 
     mmo_char_arr_new(&player->name);
 }
@@ -61,26 +60,16 @@ void mmo_game_new(mmo_game_t *game) { mmo_player_arr_new(&game->players); }
 
 void mmo_game_free(mmo_game_t *game) { mmo_player_arr_free(&game->players); }
 
-static bool find_client(mmo_client_t *client, void *ctx) {
-    return client->handle == *(mmo_client_handle_t *)ctx;
-}
-
-static bool find_player(mmo_player_t *player, void *ctx) {
+static bool mmo_find_player(mmo_player_t *player, void *ctx) {
     return player->client_handle == *(mmo_client_handle_t *)ctx;
 }
 
 static void mmo_handle_new_and_old_clients(mmo_game_t *game,
                                            mmo_server_t *server) {
     /* Create new players. */
-    for (size_t i = 0; i < server->events.new_clients.num_elems; i += 1) {
-        mmo_client_handle_t handle = server->events.new_clients.elems[i];
-
-        mmo_client_t *client =
-            mmo_client_arr_find(&server->clients, find_client, &handle);
-
+    MMO_FOREACH(server->events.new_clients, handle) {
         mmo_player_t new_player;
-        mmo_player_new(&new_player, server, server->events.new_clients.elems[i],
-                       client->terminal_width, client->terminal_height);
+        mmo_player_new(&new_player, server, *handle);
 
         mmo_player_arr_append(&game->players, &new_player);
     }
@@ -88,7 +77,7 @@ static void mmo_handle_new_and_old_clients(mmo_game_t *game,
     /* Remove players. */
     for (size_t i = 0; i < server->events.removed_clients.num_elems; i += 1) {
         mmo_player_t *player =
-            mmo_player_arr_find(&game->players, find_player,
+            mmo_player_arr_find(&game->players, mmo_find_player,
                                 &server->events.removed_clients.elems[i]);
 
         assert(player);
@@ -110,25 +99,12 @@ void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
 
     /* Update and render player states. */
     MMO_FOREACH(game->players, player) {
-        /* Handle updated terminal dimensions events. */
-        MMO_FOREACH(server->events.new_terminal_sizes, handle) {
-            if (player->client_handle == *handle) {
-                /* Find client because new terminal dimensions are stored there.
-                 */
-                mmo_client_t *client = mmo_client_arr_find(
-                    &server->clients, mmo_find_client, handle);
-                assert(client && "Client must exist.");
+        mmo_client_t *client = mmo_client_arr_find(
+            &server->clients, mmo_find_client, &player->client_handle);
+        assert(client);
 
-                /* Resize player's screen buffer. */
-                mmo_screen_buf_resize(&player->screen_buf,
-                                      client->terminal_width,
-                                      client->terminal_height);
-
-                break;
-            }
-        }
-
-        /* Bundle up all client keyboard input events for the current player. */
+        /* Bundle up all client keyboard input events for the current
+           player. */
 
         mmo_char_arr_arr_t inputs;
         mmo_char_arr_arr_new(&inputs);
@@ -147,6 +123,24 @@ void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
         state->update(state->ctx, player->client_handle, server,
                       (mmo_char_arr_span_t *)&inputs);
 
+        /* Check if the client terminal is too small. */
+        if (client->terminal_width < MMO_COLS ||
+            client->terminal_height < MMO_ROWS) {
+            char *msg = MMO_ANSI_CLEAR_SCREEN
+                MMO_ANSI_MOVE_CURSOR_TO_START MMO_ANSI_RESET
+                "Resize your terminal to atleast 80 x 24.";
+
+            mmo_server_send(
+                server, client->handle,
+                &(mmo_char_arr_t){.elems = msg, .num_elems = strlen(msg)});
+
+            MMO_FOREACH(player->screen_buf.cells_modified_flags, modified) {
+                *modified = true;
+            }
+
+            continue;
+        }
+
         /* Invoke render callback for player. */
         state->render(state->ctx, &player->screen_buf);
 
@@ -155,7 +149,8 @@ void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
         mmo_char_arr_t bytes;
         mmo_char_arr_new(&bytes);
 
-        mmo_screen_buf_to_str(&player->screen_buf, &bytes);
+        mmo_screen_buf_to_str(&player->screen_buf, client->terminal_width,
+                              client->terminal_height, &bytes);
         memset(player->screen_buf.cells_modified_flags.elems, false,
                player->screen_buf.cells_modified_flags.num_elems);
 

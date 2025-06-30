@@ -38,6 +38,6 @@ int main(int argc, char *argv[]) {
         mmo_game_update(&game, &server);
 
         /* Poll for server events. */
-        mmo_server_poll(&server, 100);
+        mmo_server_poll(&server, 250);
     }
 }

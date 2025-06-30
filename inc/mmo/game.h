@@ -16,8 +16,7 @@ typedef struct mmo_player_s {
 } mmo_player_t;
 
 void mmo_player_new(mmo_player_t *player, mmo_server_t *server,
-                    mmo_client_handle_t handle, int terminal_width,
-                    int terminal_height);
+                    mmo_client_handle_t handle);
 void mmo_player_free(mmo_player_t *player);
 
 typedef struct mmo_game_s {

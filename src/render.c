@@ -1,5 +1,6 @@
 #include <mmo/render.h>
 
+#include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -11,8 +12,8 @@
 #include <string.h>
 #include <mmo/arr/bmp_pixel.h>
 
-#define MMO_FOREGROUND 38
-#define MMO_BACKGROUND 48
+#define MMO_ANSI_FG 38
+#define MMO_ANSI_BG 48
 
 void mmo_ansi_move_cursor(int x, int y, mmo_char_arr_t *out) {
     mmo_char_arr_resize(out, 64);
@@ -20,13 +21,36 @@ void mmo_ansi_move_cursor(int x, int y, mmo_char_arr_t *out) {
                                       y + 1, x + 1);
 }
 
-void mmo_screen_buf_new(mmo_screen_buf_t *buf, int width, int height) {
+void mmo_ansi_move_cursor_relative(int dx, int dy, mmo_char_arr_t *out) {
+    mmo_char_arr_resize(out, 64);
+
+    size_t len = 0;
+
+    if (dx != 0) {
+        len = (size_t)snprintf(out->elems, out->num_elems, "\x1b[%d%c", abs(dx),
+                               dx > 0 ? 'C' : 'D');
+    }
+    if (dy != 0) {
+        len += (size_t)snprintf(out->elems + len, out->num_elems - len,
+                                "\x1b[%d%c", abs(dy), dy > 0 ? 'B' : 'A');
+    }
+
+    out->num_elems = len;
+}
+
+void mmo_screen_buf_new(mmo_screen_buf_t *buf) {
     assert(buf);
 
     mmo_cell_arr_new(&buf->cells);
     mmo_bool_arr_new(&buf->cells_modified_flags);
 
-    mmo_screen_buf_resize(buf, width, height);
+    mmo_cell_arr_resize(&buf->cells, MMO_COLS * MMO_ROWS);
+    mmo_bool_arr_resize(&buf->cells_modified_flags, MMO_COLS * MMO_ROWS);
+
+    MMO_FOREACH(buf->cells, cell) { cell->c = ' '; }
+    MMO_FOREACH(buf->cells_modified_flags, modified) { *modified = false; }
+
+    buf->should_clear = true;
 }
 
 void mmo_screen_buf_free(mmo_screen_buf_t *buf) {
@@ -34,27 +58,6 @@ void mmo_screen_buf_free(mmo_screen_buf_t *buf) {
 
     mmo_bool_arr_free(&buf->cells_modified_flags);
     mmo_cell_arr_free(&buf->cells);
-
-    buf->width  = 0;
-    buf->height = 0;
-}
-
-void mmo_screen_buf_resize(mmo_screen_buf_t *buf, int width, int height) {
-    assert(buf);
-
-    mmo_cell_arr_resize(&buf->cells, (size_t)(width * height));
-    mmo_bool_arr_resize(&buf->cells_modified_flags, (size_t)(width * height));
-
-    /* Reset all cells. */
-    MMO_FOREACH(buf->cells, cell) { cell->c = ' '; }
-
-    /* Flag all cells as not modified. */
-    MMO_FOREACH(buf->cells_modified_flags, modified) { *modified = false; }
-
-    buf->width  = width;
-    buf->height = height;
-
-    buf->should_clear = true;
 }
 
 /*static void mmo_cell_color_to_str(const mmo_cell_color_t *color, int layer,
@@ -125,7 +128,8 @@ static void mmo_cell_to_str(const mmo_cell_t *cell, const mmo_cell_t *prev_cell,
     mmo_char_arr_append(out, (char *)&cell->c);
 }
 
-void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, mmo_char_arr_t *out) {
+void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, int term_cols, int term_rows,
+                           mmo_char_arr_t *out) {
     assert(buf);
     assert(out);
 
@@ -140,20 +144,22 @@ void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, mmo_char_arr_t *out) {
         buf->should_clear = false;
     }
 
-    for (int y = 0; y < buf->height; y += 1) {
+    for (int y = 0; y < MMO_ROWS; y += 1) {
         /* Flag whether the cell to the left of this was modified. */
         bool prev_cell_modified = false;
 
-        for (int x = 0; x < buf->width; x += 1) {
+        for (int x = 0; x < MMO_COLS; x += 1) {
             mmo_char_arr_clear(&str);
 
-            mmo_cell_t *cell = &buf->cells.elems[y * buf->width + x];
-            bool modified = buf->cells_modified_flags.elems[y * buf->width + x];
+            mmo_cell_t *cell = &buf->cells.elems[y * MMO_COLS + x];
+            bool modified = buf->cells_modified_flags.elems[y * MMO_COLS + x];
             mmo_cell_t *prev = (y == 0 && x == 0) ? NULL : cell - 1;
 
             if (modified) {
                 if (!prev_cell_modified) {
-                    mmo_ansi_move_cursor(x, y, &str);
+                    mmo_ansi_move_cursor(term_cols / 2 - MMO_COLS / 2 + x,
+                                         term_rows / 2 - MMO_ROWS / 2 + y,
+                                         &str);
                     mmo_char_arr_append_arr(out, &str);
                     mmo_char_arr_clear(&str);
                 }
@@ -174,8 +180,8 @@ void mmo_screen_buf_set(mmo_screen_buf_t *buf, int x, int y,
     assert(buf);
     assert(cell);
 
-    if (cell->c != buf->cells.elems[y * buf->width + x].c) {
-        buf->cells.elems[y * buf->width + x]                = *cell;
-        buf->cells_modified_flags.elems[y * buf->width + x] = true;
+    if (cell->c != buf->cells.elems[y * MMO_COLS + x].c) {
+        buf->cells.elems[y * MMO_COLS + x]                = *cell;
+        buf->cells_modified_flags.elems[y * MMO_COLS + x] = true;
     }
 }
