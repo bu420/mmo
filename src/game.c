@@ -4,7 +4,6 @@
 #include <string.h>
 #include <assert.h>
 
-#include <mmo/mem.h>
 #include <mmo/arr/char.h>
 #include <mmo/arr/client_input.h>
 #include <mmo/net.h>
@@ -13,7 +12,6 @@
 #include <mmo/render.h>
 #include <mmo/list/player_state.h>
 #include <mmo/arr/char_arr.h>
-#include <mmo/str.h>
 #include <mmo/state/login.h>
 
 void mmo_player_new(mmo_player_t *player, mmo_server_t *server,
@@ -25,7 +23,8 @@ void mmo_player_new(mmo_player_t *player, mmo_server_t *server,
 
     /* Put new players in the "telnet negotiation" state. */
     {
-        mmo_login_state_t *login_state = mmo_malloc(sizeof(mmo_login_state_t));
+        mmo_login_state_t *login_state = malloc(sizeof(mmo_login_state_t));
+        assert(login_state);
         mmo_login_state_new(login_state);
 
         mmo_player_state_t state;
@@ -62,11 +61,11 @@ void mmo_game_new(mmo_game_t *game) { mmo_player_arr_new(&game->players); }
 
 void mmo_game_free(mmo_game_t *game) { mmo_player_arr_free(&game->players); }
 
-static bool find_client(const mmo_client_t *client, void *ctx) {
+static bool find_client(mmo_client_t *client, void *ctx) {
     return client->handle == *(mmo_client_handle_t *)ctx;
 }
 
-static bool find_player(const mmo_player_t *player, void *ctx) {
+static bool find_player(mmo_player_t *player, void *ctx) {
     return player->client_handle == *(mmo_client_handle_t *)ctx;
 }
 
@@ -102,7 +101,7 @@ static void mmo_handle_new_and_old_clients(mmo_game_t *game,
     }
 }
 
-static bool mmo_find_client(const mmo_client_t *client, void *ctx) {
+static bool mmo_find_client(mmo_client_t *client, void *ctx) {
     return client->handle == *(mmo_client_handle_t *)ctx;
 }
 
@@ -114,7 +113,8 @@ void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
         /* Handle updated terminal dimensions events. */
         MMO_FOREACH(server->events.new_terminal_sizes, handle) {
             if (player->client_handle == *handle) {
-                /* Find client because new terminal dimensions are stored there. */
+                /* Find client because new terminal dimensions are stored there.
+                 */
                 mmo_client_t *client = mmo_client_arr_find(
                     &server->clients, mmo_find_client, handle);
                 assert(client && "Client must exist.");

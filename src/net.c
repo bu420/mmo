@@ -192,7 +192,7 @@ static void mmo_handle_incoming_connection(mmo_server_t *server) {
     mmo_telnet_negotiate_options(new_client, server);
 }
 
-static bool mmo_find_unsuccessful_telopt(const mmo_telopt_t *opt, void *ctx) {
+static bool mmo_find_unsuccessful_telopt(mmo_telopt_t *opt, void *ctx) {
     (void)ctx;
     return !opt->done;
 }
@@ -309,7 +309,7 @@ no_events:
     }
 }
 
-static bool mmo_find_client(const mmo_client_t *client, void *ctx) {
+static bool mmo_find_client(mmo_client_t *client, void *ctx) {
     return client->handle == *(mmo_client_handle_t *)ctx;
 }
 

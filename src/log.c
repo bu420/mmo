@@ -28,7 +28,7 @@ void mmo_log_free() { fclose(log); }
 void mmo_log_fmt(const char *level, const char *fmt, ...) {
     assert(level);
     assert(fmt);
-    assert(log && "Call mmo_log_init() first!");
+    assert(log && "Call mmo_log_init() first.");
 
     char buf[1024];
     char *pos = buf;

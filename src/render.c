@@ -6,14 +6,10 @@
 
 #include <mmo/arr/cell.h>
 #include <mmo/arr/char.h>
-#include <mmo/str.h>
 #include <mmo/log.h>
 #include <mmo/arr/bool.h>
 #include <string.h>
 #include <mmo/arr/bmp_pixel.h>
-#include <mmo/mem.h>
-
-#define MMO_ASCII " .:-=+*#%@"
 
 #define MMO_FOREGROUND 38
 #define MMO_BACKGROUND 48
@@ -139,9 +135,8 @@ void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, mmo_char_arr_t *out) {
     /* Check if client screen needs to be cleared. */
     if (buf->should_clear) {
         mmo_char_arr_append_arr(
-            out,
-            &(mmo_char_arr_t){.elems     = MMO_ANSI_CLEAR_SCREEN,
-                              .num_elems = MMO_STR_LEN(MMO_ANSI_CLEAR_SCREEN)});
+            out, &(mmo_char_arr_t){.elems     = MMO_ANSI_CLEAR_SCREEN,
+                                   .num_elems = strlen(MMO_ANSI_CLEAR_SCREEN)});
         buf->should_clear = false;
     }
 
@@ -182,110 +177,5 @@ void mmo_screen_buf_set(mmo_screen_buf_t *buf, int x, int y,
     if (cell->c != buf->cells.elems[y * buf->width + x].c) {
         buf->cells.elems[y * buf->width + x]                = *cell;
         buf->cells_modified_flags.elems[y * buf->width + x] = true;
-    }
-}
-
-void mmo_cell_buf_new(mmo_cell_buf_t *buf) {
-    mmo_cell_arr_new(&buf->cells);
-    buf->width  = 0;
-    buf->height = 0;
-}
-
-void mmo_cell_buf_free(mmo_cell_buf_t *buf) { mmo_cell_arr_free(&buf->cells); }
-
-static int mmo_to_int(const uint8_t *header, int offset) {
-    return header[offset + 0] | (header[offset + 1] << 8) |
-           (header[offset + 2] << 16) | (header[offset + 3] << 24);
-}
-
-void mmo_bmp_load(const char *path, mmo_bmp_t *bmp) {
-    assert(path);
-    assert(bmp);
-
-    FILE *file = fopen(path, "rb");
-
-    if (!file) {
-        mmo_log_fmt(MMO_LOG_ERROR,
-                    "mmo_load_bmp(): file %s could not be opened.", path);
-        exit(EXIT_FAILURE);
-    }
-
-    uint8_t header[54];
-    fread(header, 1, 54, file);
-
-    int file_size   = mmo_to_int(header, 2);
-    int header_size = mmo_to_int(header, 10);
-    int width       = mmo_to_int(header, 18);
-    int height      = mmo_to_int(header, 22);
-    int pixel_size  = header[28] / 8;
-    int padding     = (4 - width * pixel_size % 4) % 4;
-
-    if (pixel_size != 4) {
-        mmo_log_fmt(MMO_LOG_ERROR,
-                    "mmo_load_bmp(): file %s has incompatible pixel size, must "
-                    "be 4 bytes per pixel, was %d.",
-                    path, pixel_size);
-        exit(EXIT_FAILURE);
-    }
-
-    mmo_bmp_pixel_arr_new(&bmp->pixels);
-    mmo_bmp_pixel_arr_resize(&bmp->pixels, (size_t)(width * height));
-    bmp->width  = width;
-    bmp->height = height;
-
-    uint8_t *data = mmo_malloc((size_t)(file_size - header_size));
-    fseek(file, header_size, SEEK_SET);
-    fread(data, 1, (size_t)(file_size - header_size), file);
-    fclose(file);
-
-    for (int y = 0; y < height; y += 1) {
-        for (int x = 0; x < width; x += 1) {
-            const uint8_t *src =
-                &data[((height - 1 - y) * (width + padding) + x) * pixel_size];
-            mmo_bmp_pixel_t *dst = &bmp->pixels.elems[y * width + x];
-
-            dst->transparent = src[3] < 128;
-
-            if (!dst->transparent) {
-                dst->r = src[2];
-                dst->g = src[1];
-                dst->b = src[0];
-            }
-        }
-    }
-
-    free(data);
-}
-
-void mmo_bmp_render(mmo_bmp_t *bmp, mmo_cell_buf_t *buf, int width,
-                    int height) {
-    assert(bmp);
-    assert(buf);
-
-    mmo_cell_arr_resize(&buf->cells, (size_t)(width * height));
-    buf->width  = width;
-    buf->height = height;
-
-    for (int x = 0; x < width; x += 1) {
-        for (int y = 0; y < height; y += 1) {
-            int src_x = (int)((float)x / (float)width * (float)bmp->width);
-            int src_y = (int)((float)y / (float)height * (float)bmp->height);
-
-            const mmo_bmp_pixel_t *src =
-                &bmp->pixels.elems[src_y * bmp->width + src_x];
-            mmo_cell_t *dst = &buf->cells.elems[y * width + x];
-
-            if (src->transparent) {
-                dst->c = ' ';
-                continue;
-            }
-
-            float brightness =
-                ((float)src->r + (float)src->g + (float)src->b) / 3.f;
-            int index =
-                (int)(brightness / 256.0f * (float)MMO_STR_LEN(MMO_ASCII));
-
-            dst->c = MMO_ASCII[index];
-        }
     }
 }

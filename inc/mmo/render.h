@@ -48,22 +48,4 @@ void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, mmo_char_arr_t *out);
 void mmo_screen_buf_set(mmo_screen_buf_t *buf, int x, int y,
                         const mmo_cell_t *cell);
 
-typedef struct mmo_cell_buf_s {
-    int width;
-    int height;
-    mmo_cell_arr_t cells;
-} mmo_cell_buf_t;
-
-void mmo_cell_buf_new(mmo_cell_buf_t *buf);
-void mmo_cell_buf_free(mmo_cell_buf_t *buf);
-
-typedef struct mmo_bmp_s {
-    int width;
-    int height;
-    mmo_bmp_pixel_arr_t pixels;
-} mmo_bmp_t;
-
-void mmo_bmp_load(const char *path, mmo_bmp_t *bmp);
-void mmo_bmp_render(mmo_bmp_t *bmp, mmo_cell_buf_t *buf, int width, int height);
-
 #endif

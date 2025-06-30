@@ -59,7 +59,7 @@ void mmo_telnet_negotiate_options(mmo_client_t *client, mmo_server_t *server) {
     }
 }
 
-static bool mmo_find_telopt(const mmo_telopt_t *opt, void *ctx) {
+static bool mmo_find_telopt(mmo_telopt_t *opt, void *ctx) {
     return opt->opt == *(uint8_t *)ctx;
 }
 

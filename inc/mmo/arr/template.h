@@ -7,8 +7,6 @@
 #include <string.h>
 #include <assert.h>
 
-#include <mmo/mem.h>
-
 #define MMO_FOREACH(arr, elem)                                                 \
     for (typeof((arr).elems) elem = (arr).elems;                               \
          elem < (arr).elems + (arr).num_elems; elem += 1)
@@ -43,7 +41,7 @@
     void name##_arr_clear(name##_arr_t *arr);                                  \
     /* May return NULL! */                                                     \
     type *name##_arr_find(name##_arr_t *arr,                                   \
-                          bool (*predicate)(const type *elem, void *cxt),      \
+                          bool (*predicate)(type * elem, void *cxt),           \
                           void *ctx);
 
 /* Generate function definitions for generic resizeable array.
@@ -70,7 +68,8 @@
     void name##_arr_resize(name##_arr_t *arr, size_t num_elems) {              \
         assert(arr);                                                           \
                                                                                \
-        arr->elems = mmo_realloc(arr->elems, num_elems * sizeof(type));        \
+        arr->elems = realloc(arr->elems, num_elems * sizeof(type));            \
+        assert(arr->elems);                                                    \
                                                                                \
         arr->num_elems = num_elems;                                            \
         arr->max_elems = num_elems;                                            \
@@ -114,7 +113,8 @@
             }                                                                  \
         }                                                                      \
                                                                                \
-        dst->elems = mmo_realloc(dst->elems, dst->max_elems * sizeof(type));   \
+        dst->elems = realloc(dst->elems, dst->max_elems * sizeof(type));       \
+        assert(dst->elems);                                                    \
                                                                                \
         /* If i doesn't point to the end of dst, move elements n steps back.   \
          */                                                                    \
@@ -164,7 +164,7 @@
     }                                                                          \
                                                                                \
     type *name##_arr_find(name##_arr_t *arr,                                   \
-                          bool (*predicate)(const type *elem, void *cxt),      \
+                          bool (*predicate)(type * elem, void *cxt),           \
                           void *ctx) {                                         \
         assert(arr);                                                           \
                                                                                \

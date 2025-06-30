@@ -6,8 +6,6 @@
 
 typedef struct mmo_login_state_s {
     bool logged_in;
-
-    mmo_bmp_t fish;
 } mmo_login_state_t;
 
 void mmo_login_state_new(mmo_login_state_t *state);

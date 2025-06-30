@@ -5,8 +5,6 @@
 #include <stddef.h>
 #include <assert.h>
 
-#include <mmo/mem.h>
-
 /* Generate struct and function declarations for generic doubly linked list.
    Put in header. */
 #define MMO_LIST_DECL(type, name)                                              \
@@ -89,7 +87,8 @@
         assert(elem);                                                          \
         assert(i <= list->num_elems);                                          \
                                                                                \
-        name##_list_node_t *node = mmo_malloc(sizeof(name##_list_node_t));     \
+        name##_list_node_t *node = malloc(sizeof(name##_list_node_t));         \
+        assert(node);                                                          \
                                                                                \
         node->data = *elem;                                                    \
         node->prev = NULL;                                                     \
@@ -133,7 +132,8 @@
         assert(elem);                                                          \
         assert(node);                                                          \
                                                                                \
-        name##_list_node_t *new_node = mmo_malloc(sizeof(name##_list_node_t)); \
+        name##_list_node_t *new_node = malloc(sizeof(name##_list_node_t));     \
+        assert(new_node);                                                      \
                                                                                \
         new_node->data = *elem;                                                \
         new_node->prev = node;                                                 \
