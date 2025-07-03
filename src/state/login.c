@@ -19,26 +19,31 @@ void mmo_login_state_update(void *ctx, mmo_client_handle_t handle,
     (void)client_keyboard_inputs;
 }
 
-static void mmo_render_text_center(char *txt, int len, int y,
-                                   mmo_screen_buf_t *screen_buf) {
-    mmo_cell_t cell;
-    cell.fg.is_set = false;
-    cell.bg.is_set = false;
-
-    for (int i = 0; i < len; i += 1) {
-        cell.c = txt[i];
-
-        mmo_screen_buf_set(screen_buf, MMO_COLS / 2 - len / 2 + i, y, &cell);
-    }
-}
-
 void mmo_login_state_render(void *ctx, mmo_screen_buf_t *screen_buf) {
     // mmo_login_state_t *state = (mmo_login_state_t *)ctx;
     (void)ctx;
 
+    char *splash = "╭─────────────────────────────╮\n"
+                   "│                             │\n"
+                   "│          Fisherman          │\n"
+                   "│     Multiplayer fishing     │\n"
+                   "│          EST. 2025          │\n"
+                   "│                             │\n"
+                   "╰─────────────────────────────╯";
+
+    mmo_cell_buf_t cell_buf;
+    mmo_cell_buf_parse(&cell_buf, splash);
+
+    for (int x = 0; x < cell_buf.cols; x += 1) {
+        for (int y = 0; y < cell_buf.rows; y += 1) {
+            mmo_screen_buf_set(screen_buf, x, y,
+                               &cell_buf.cells.elems[y * cell_buf.cols + x]);
+        }
+    }
+
     /* Draw border. */
 
-    mmo_cell_t cell;
+    /*mmo_cell_t cell;
     cell.c         = '~';
     cell.fg.is_set = false;
     cell.bg.is_set = false;
@@ -51,14 +56,5 @@ void mmo_login_state_render(void *ctx, mmo_screen_buf_t *screen_buf) {
     for (int y = 0; y < MMO_ROWS; y += 1) {
         mmo_screen_buf_set(screen_buf, 0, y, &cell);
         mmo_screen_buf_set(screen_buf, MMO_COLS - 1, y, &cell);
-    }
-
-    /* Draw text in center. */
-
-    char *title    = "Welcome to Fisherman";
-    char *subtitle = "A multiplayer fishing game";
-
-    mmo_render_text_center(title, (int)strlen(title), MMO_ROWS / 2, screen_buf);
-    mmo_render_text_center(subtitle, (int)strlen(subtitle), MMO_ROWS / 2 + 1,
-                           screen_buf);
+    }*/
 }

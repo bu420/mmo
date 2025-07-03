@@ -28,7 +28,7 @@ typedef struct mmo_cell_color_s {
 } mmo_cell_color_t;
 
 typedef struct mmo_cell_s {
-    char c;
+    char codepoint[5];
     mmo_cell_color_t fg;
     mmo_cell_color_t bg;
 } mmo_cell_t;
@@ -46,5 +46,15 @@ void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, int term_cols, int term_rows,
                            mmo_char_arr_t *out);
 void mmo_screen_buf_set(mmo_screen_buf_t *buf, int x, int y,
                         const mmo_cell_t *cell);
+
+typedef struct mmo_cell_buf_s {
+    int cols;
+    int rows;
+    mmo_cell_arr_t cells;
+} mmo_cell_buf_t;
+
+/* Parse ANSI escape sequences and UTF-8 unicode.  */
+void mmo_cell_buf_parse(mmo_cell_buf_t *buf, char *utf8);
+void mmo_cell_buf_free(mmo_cell_buf_t *buf);
 
 #endif
