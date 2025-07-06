@@ -18,7 +18,10 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
 
 add_executable(server ${SOURCES})
 
-target_include_directories(server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
+target_include_directories(server PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 target_compile_options(server PRIVATE
     -Wall
@@ -28,6 +31,7 @@ target_compile_options(server PRIVATE
     -Wconversion
     -Wshadow
     -Wunused
+    -Wswitch-enum
     -pedantic-errors
 )
 

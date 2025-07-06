@@ -7,7 +7,6 @@
 #include <mmo/arr/char.h>
 #include <mmo/arr/client.h>
 #include <mmo/arr/client_handle.h>
-#include <mmo/arr/client_input.h>
 #include <mmo/arr/telopt.h>
 
 #define MMO_ALLOWED_CLIENT_VERSION 1
@@ -72,7 +71,6 @@ typedef struct mmo_server_s {
     struct {
         mmo_client_handle_arr_t new_clients;
         mmo_client_handle_arr_t removed_clients;
-        mmo_client_input_arr_t client_inputs;
     } events;
 } mmo_server_t;
 

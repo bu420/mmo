@@ -47,14 +47,4 @@ void mmo_screen_buf_to_str(mmo_screen_buf_t *buf, int term_cols, int term_rows,
 void mmo_screen_buf_set(mmo_screen_buf_t *buf, int x, int y,
                         const mmo_cell_t *cell);
 
-typedef struct mmo_cell_buf_s {
-    int cols;
-    int rows;
-    mmo_cell_arr_t cells;
-} mmo_cell_buf_t;
-
-/* Parse ANSI escape sequences and UTF-8 unicode.  */
-void mmo_cell_buf_parse(mmo_cell_buf_t *buf, char *utf8);
-void mmo_cell_buf_free(mmo_cell_buf_t *buf);
-
 #endif

@@ -21,7 +21,7 @@
     } name##_arr_t;                                                            \
                                                                                \
     typedef struct name##_span_s {                                             \
-        const type *elems;                                                     \
+        type *elems;                                                           \
         size_t num_elems;                                                      \
     } name##_span_t;                                                           \
                                                                                \

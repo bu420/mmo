@@ -5,7 +5,6 @@
 #include <assert.h>
 
 #include <mmo/arr/char.h>
-#include <mmo/arr/client_input.h>
 #include <mmo/net.h>
 #include <mmo/arr/client.h>
 #include <mmo/arr/player.h>
@@ -103,25 +102,11 @@ void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
             &server->clients, mmo_find_client, &player->client_handle);
         assert(client);
 
-        /* Bundle up all client keyboard input events for the current
-           player. */
-
-        mmo_char_arr_arr_t inputs;
-        mmo_char_arr_arr_new(&inputs);
-
-        MMO_FOREACH(server->events.client_inputs, input) {
-            if (player->client_handle == input->client) {
-                mmo_char_arr_arr_append(&inputs, &input->input);
-                break;
-            }
-        }
-
         /* Get the current player state. */
         mmo_player_state_t *state = &player->state_stack.tail->data;
 
         /* Invoke update callback for player and send keyboard inputs. */
-        state->update(state->ctx, player->client_handle, server,
-                      (mmo_char_arr_span_t *)&inputs);
+        state->update(state->ctx, player->client_handle, server, &client->in);
 
         /* Check if the client terminal is too small. */
         if (client->terminal_width < MMO_COLS ||

@@ -1,4 +1,3 @@
-#include "mmo/arr/telopt.h"
 #include <mmo/net.h>
 
 #include <stddef.h>
@@ -19,7 +18,6 @@
 #include <mmo/arr/pollfd.h>
 #include <mmo/arr/char.h>
 #include <mmo/arr/client_handle.h>
-#include <mmo/arr/client_input.h>
 #include <mmo/log.h>
 
 [[nodiscard]] static int mmo_socket_set_blocking(mmo_socket_t socket,
@@ -51,13 +49,11 @@ void mmo_server_new(mmo_server_t *server, int num_max_clients) {
     mmo_client_arr_new(&server->clients);
     mmo_client_handle_arr_new(&server->events.new_clients);
     mmo_client_handle_arr_new(&server->events.removed_clients);
-    mmo_client_input_arr_new(&server->events.client_inputs);
 }
 
 void mmo_server_free(mmo_server_t *server) {
     assert(server);
 
-    mmo_client_input_arr_free(&server->events.client_inputs);
     mmo_client_handle_arr_free(&server->events.removed_clients);
     mmo_client_handle_arr_free(&server->events.new_clients);
     mmo_client_arr_free(&server->clients);
@@ -198,10 +194,9 @@ static bool mmo_find_unsuccessful_telopt(mmo_telopt_t *opt, void *ctx) {
 void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
     assert(server);
 
-    /* Reset events. */
+    /* Reset. */
     mmo_client_handle_arr_clear(&server->events.new_clients);
     mmo_client_handle_arr_clear(&server->events.removed_clients);
-    mmo_client_input_arr_clear(&server->events.client_inputs);
 
     /* Array of file descriptors (sockets) to be polled.
        Set first element to listener socket and the rest to client sockets. */
