@@ -136,6 +136,7 @@ void mmo_cell_buf_parse_string(mmo_cell_buf_t *buf, mmo_char_span_t string) {
     int max_cols = MMO_COLS * 4;
     int max_rows = MMO_ROWS * 4;
     mmo_cell_arr_resize(&buf->cells, (size_t)(max_cols * max_rows));
+    MMO_FOREACH(buf->cells, cell) { memcpy(cell->codepoint, " ", 2); }
 
     buf->cols = 0;
     buf->rows = 0;
@@ -144,15 +145,16 @@ void mmo_cell_buf_parse_string(mmo_cell_buf_t *buf, mmo_char_span_t string) {
     int row = 0;
 
     for (uint8_t *b = (uint8_t *)string.elems; *b;) {
+        /* Parse ANSI escape sequence. */
+
         size_t len;
 
-        if (mmo_is_ansi_seq(
-                (mmo_char_span_t){.elems = (char *)b,
-                                  .num_elems =
-                                      (size_t)((char *)b - string.elems)},
-                &(bool){}, &len)) {
-            mmo_handle_ansi(
-                (mmo_char_span_t){.elems = string.elems, .num_elems = len});
+        mmo_char_span_t remaining;
+        remaining.elems     = (char *)b;
+        remaining.num_elems = (size_t)((char *)b - string.elems);
+
+        if (mmo_is_ansi_seq(remaining, &(bool){}, &len)) {
+            mmo_handle_ansi(remaining);
             goto update_dimensions;
         }
 

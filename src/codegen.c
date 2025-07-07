@@ -16,7 +16,6 @@
 #include <mmo/list/template.h>
 #include <mmo/list/char_arr.h>
 #include <mmo/list/char_span.h>
-#include <mmo/list/player_state.h>
 
 MMO_ARR_DEF(char, mmo_char)
 MMO_ARR_DEF(mmo_char_arr_t, mmo_char_arr)
@@ -31,4 +30,3 @@ MMO_ARR_DEF(mmo_bmp_pixel_t, mmo_bmp_pixel)
 
 MMO_LIST_DEF(mmo_char_arr_t, mmo_char_arr)
 MMO_LIST_DEF(mmo_char_span_t, mmo_char_span)
-MMO_LIST_DEF(mmo_player_state_t, mmo_player_state)
