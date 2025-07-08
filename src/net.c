@@ -14,7 +14,6 @@
 #include <sys/socket.h>
 #include <errno.h>
 
-#include <mmo/telnet.h>
 #include <mmo/arr/pollfd.h>
 #include <mmo/arr/char.h>
 #include <mmo/arr/client_handle.h>
@@ -316,14 +315,13 @@ void mmo_server_remove_client(mmo_server_t *server,
 }
 
 void mmo_server_send(mmo_server_t *server, mmo_client_handle_t handle,
-                     const mmo_char_arr_t *msg) {
+                     mmo_char_span_t data) {
     assert(server);
-    assert(msg);
 
     mmo_client_t *client =
         mmo_client_arr_find(&server->clients, mmo_find_client, &handle);
-    assert(client && "Client must exist. Something is wrong.");
+    assert(client);
 
     /* Append message to out stream. */
-    mmo_char_arr_append_arr(&client->out, (mmo_char_arr_t *)msg);
+    mmo_char_arr_append_arr(&client->out, (mmo_char_arr_t *)&data);
 }

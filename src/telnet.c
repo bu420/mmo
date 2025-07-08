@@ -1,4 +1,4 @@
-#include <mmo/telnet.h>
+#include <mmo/net.h>
 
 #include <stdint.h>
 
@@ -19,7 +19,7 @@
 #define MMO_SE   0xf0
 
 /* Telnet options. */
-#define MMO_ECHO 1
+//#define MMO_ECHO 1
 #define MMO_SGA  3  /* Supress-go-ahead. */
 #define MMO_NAWS 31 /* Negotiate-about-window-size. */
 
@@ -39,15 +39,15 @@ static uint8_t mmo_cmd_deny[256] = {
 
 void mmo_telnet_negotiate_options(mmo_client_t *client, mmo_server_t *server) {
     /* Disable echo. */
-    mmo_telopt_t echo = {false, MMO_WILL, MMO_ECHO};
+    //mmo_telopt_t echo = {false, MMO_WILL, MMO_ECHO};
     /* Disable half-duplex communication (suppress-go-ahead). */
-    mmo_telopt_t sga = {false, MMO_WILL, MMO_SGA};
+    //mmo_telopt_t sga = {false, MMO_WILL, MMO_SGA};
     /* Enable negotiate-about-window-size. */
-    mmo_telopt_t naws = {false, MMO_DO, MMO_NAWS};
+    //mmo_telopt_t naws = {false, MMO_DO, MMO_NAWS};
 
-    mmo_telopt_arr_append(&client->telnet.opts, &echo);
-    mmo_telopt_arr_append(&client->telnet.opts, &sga);
-    mmo_telopt_arr_append(&client->telnet.opts, &naws);
+    //mmo_telopt_arr_append(&client->telnet.opts, &echo);
+    //mmo_telopt_arr_append(&client->telnet.opts, &sga);
+    //mmo_telopt_arr_append(&client->telnet.opts, &naws);
 
     /* Send options to client. */
     MMO_FOREACH(client->telnet.opts, opt) {
@@ -55,7 +55,7 @@ void mmo_telnet_negotiate_options(mmo_client_t *client, mmo_server_t *server) {
 
         mmo_server_send(
             server, client->handle,
-            &(mmo_char_arr_t){.elems = (char *)request, .num_elems = 3});
+            (mmo_char_span_t){.elems = (char *)request, .num_elems = 3});
     }
 }
 
@@ -74,7 +74,7 @@ static void mmo_telnet_handle_command(uint8_t opt, mmo_client_t *client,
 
         mmo_server_send(
             server, client->handle,
-            &(mmo_char_arr_t){.elems = (char *)response, .num_elems = 3});
+            (mmo_char_span_t){.elems = (char *)response, .num_elems = 3});
 
         return;
     }
@@ -86,7 +86,7 @@ static void mmo_telnet_handle_command(uint8_t opt, mmo_client_t *client,
 
         mmo_server_send(
             server, client->handle,
-            &(mmo_char_arr_t){.elems = msg, .num_elems = strlen(msg)});
+            (mmo_char_span_t){.elems = msg, .num_elems = strlen(msg)});
 
         mmo_server_remove_client(server, client->handle);
 

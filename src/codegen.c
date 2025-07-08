@@ -7,8 +7,6 @@
 #include <mmo/arr/pollfd.h>
 #include <mmo/arr/player.h>
 #include <mmo/game.h>
-#include <mmo/render.h>
-#include <mmo/arr/cell.h>
 #include <mmo/arr/bool.h>
 #include <mmo/arr/telopt.h>
 #include <mmo/arr/bmp_pixel.h>
@@ -23,7 +21,6 @@ MMO_ARR_DEF(int, mmo_client_handle)
 MMO_ARR_DEF(mmo_client_t, mmo_client)
 MMO_ARR_DEF(struct pollfd, mmo_pollfd)
 MMO_ARR_DEF(mmo_player_t, mmo_player)
-MMO_ARR_DEF(mmo_cell_t, mmo_cell)
 MMO_ARR_DEF(bool, mmo_bool)
 MMO_ARR_DEF(mmo_telopt_t, mmo_telopt)
 MMO_ARR_DEF(mmo_bmp_pixel_t, mmo_bmp_pixel)

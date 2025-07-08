@@ -80,6 +80,13 @@ void mmo_server_listen(mmo_server_t *server, int port);
 void mmo_server_poll(mmo_server_t *server, int timeout_millisecs);
 void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t handle);
 void mmo_server_send(mmo_server_t *server, mmo_client_handle_t handle,
-                     const mmo_char_arr_t *msg);
+                     mmo_char_span_t data);
+
+void mmo_telnet_negotiate_options(mmo_client_t *client, mmo_server_t *server);
+
+/* Parse receieved bytes. It may contain both plain data aswell as
+   telnet commands and subnegotiations. */
+void mmo_telnet_parse(mmo_char_span_t bytes, mmo_client_t *client,
+                      mmo_server_t *server);
 
 #endif
