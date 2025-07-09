@@ -16,7 +16,6 @@
 
 #include <mmo/arr/pollfd.h>
 #include <mmo/arr/char.h>
-#include <mmo/arr/client_handle.h>
 #include <mmo/log.h>
 
 [[nodiscard]] static int mmo_socket_set_blocking(mmo_socket_t socket,
@@ -40,21 +39,15 @@
     return EXIT_SUCCESS;
 }
 
-void mmo_server_new(mmo_server_t *server, int num_max_clients) {
+void mmo_server_new(mmo_server_t *server) {
     assert(server);
 
-    server->num_max_clients = num_max_clients;
-
     mmo_client_arr_new(&server->clients);
-    mmo_client_handle_arr_new(&server->events.new_clients);
-    mmo_client_handle_arr_new(&server->events.removed_clients);
 }
 
 void mmo_server_free(mmo_server_t *server) {
     assert(server);
 
-    mmo_client_handle_arr_free(&server->events.removed_clients);
-    mmo_client_handle_arr_free(&server->events.new_clients);
     mmo_client_arr_free(&server->clients);
 }
 
@@ -97,7 +90,7 @@ void mmo_server_listen(mmo_server_t *server, int port) {
 
     /* Listen on socket. */
 
-    if (listen(server->listener, server->num_max_clients) == -1) {
+    if (listen(server->listener, MMO_CLIENTS_MAX) == -1) {
         mmo_log_fmt(MMO_LOG_ERROR, "listen(): failed to listen.");
         exit(EXIT_FAILURE);
     }
@@ -107,17 +100,15 @@ static void mmo_disconnect_client(mmo_server_t *server, mmo_client_t *client) {
     assert(server);
     assert(client);
 
-    mmo_client_handle_arr_append(&server->events.removed_clients,
-                                 &client->handle);
-
     mmo_log_fmt(MMO_LOG_INFO, "Client disconnected (%s).", client->ip);
+
+    char *goodbye = "\r\nGoodbye.\r\n";
+    send(client->socket, goodbye, strlen(goodbye), 0);
 
     close(client->socket);
 
     mmo_char_arr_free(&client->in);
     mmo_char_arr_free(&client->out);
-    mmo_telopt_arr_free(&client->telnet.opts);
-    mmo_char_arr_free(&client->telnet.sb_buf);
 
     mmo_client_arr_remove_from_ptr(&server->clients, client);
 }
@@ -128,7 +119,7 @@ static void mmo_handle_incoming_connection(mmo_server_t *server) {
     /* Accept connection. */
 
     struct sockaddr_storage addr;
-    socklen_t len = sizeof(addr);
+    socklen_t len = sizeof addr;
 
     mmo_socket_t socket =
         accept(server->listener, (struct sockaddr *)&addr, &len);
@@ -147,28 +138,21 @@ static void mmo_handle_incoming_connection(mmo_server_t *server) {
     }
 
     /* If too many clients, reject socket with message. */
-    if (server->clients.num_elems == (size_t)server->num_max_clients) {
-        const char response[] = "Connection refused. Server is full.";
+    if (server->clients.num_elems == MMO_CLIENTS_MAX) {
+        const char response[] = "\r\nConnection refused. Server is full.\r\n";
         send(socket, response, strlen(response), 0);
-
         close(socket);
-
         return;
     }
 
     /* Create client and add to array. */
 
     mmo_client_t client;
-    client.socket          = socket;
-    client.terminal_width  = 50;
-    client.terminal_height = 25;
-    client.state           = MMO_CLIENT_STATE_TELNET_NEGOTIATION;
-    client.telnet.state    = MMO_TELNET_STATE_DATA;
+    client.socket = socket;
+    client.state  = MMO_CLIENT_STATE_NEW;
 
     mmo_char_arr_new(&client.in);
     mmo_char_arr_new(&client.out);
-    mmo_telopt_arr_new(&client.telnet.opts);
-    mmo_char_arr_new(&client.telnet.sb_buf);
 
     if (!inet_ntop(addr.ss_family, &(((struct sockaddr_in *)&addr)->sin_addr),
                    client.ip, INET_ADDRSTRLEN)) {
@@ -179,23 +163,10 @@ static void mmo_handle_incoming_connection(mmo_server_t *server) {
     mmo_client_arr_append(&server->clients, &client);
 
     mmo_log_fmt(MMO_LOG_INFO, "Client connected (%s).", client.ip);
-
-    mmo_client_t *new_client =
-        &server->clients.elems[server->clients.num_elems - 1];
-    mmo_telnet_negotiate_options(new_client, server);
 }
 
-static bool mmo_find_unsuccessful_telopt(mmo_telopt_t *opt, void *ctx) {
-    (void)ctx;
-    return !opt->done;
-}
-
-void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
+void mmo_server_poll(mmo_server_t *server) {
     assert(server);
-
-    /* Reset. */
-    mmo_client_handle_arr_clear(&server->events.new_clients);
-    mmo_client_handle_arr_clear(&server->events.removed_clients);
 
     /* Array of file descriptors (sockets) to be polled.
        Set first element to listener socket and the rest to client sockets. */
@@ -208,22 +179,13 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
         &(struct pollfd){.fd = server->listener, .events = POLLIN});
 
     MMO_FOREACH(server->clients, client) {
-        if (client->state == MMO_CLIENT_STATE_TO_BE_REMOVED) {
-            mmo_disconnect_client(server, client);
-
-            continue;
+        if (client->state == MMO_CLIENT_STATE_NEW) {
+            client->state = MMO_CLIENT_STATE_ONLINE;
         }
 
-        if (client->state == MMO_CLIENT_STATE_TELNET_NEGOTIATION) {
-            /* Check if all telnet options have been successfully negotiated. */
-            if (!mmo_telopt_arr_find(&client->telnet.opts,
-                                     mmo_find_unsuccessful_telopt, NULL)) {
-                client->state = MMO_CLIENT_STATE_ONLINE;
-
-                /* Notify server owner of a new user. */
-                mmo_client_handle_arr_append(&server->events.new_clients,
-                                             &client->handle);
-            }
+        else if (client->state == MMO_CLIENT_STATE_TO_BE_REMOVED) {
+            mmo_disconnect_client(server, client);
+            continue;
         }
 
         /* Add client socket to array of sockets to be polled for events. */
@@ -234,7 +196,7 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
 
     /* poll(): While there are no connected clients, wait indefinitely (-1). */
 
-    int timeout = server->clients.num_elems == 0 ? -1 : timeout_millisecs;
+    int timeout = server->clients.num_elems == 0 ? -1 : 0;
 
     switch (
         poll(polled_sockets.elems, (nfds_t)polled_sockets.num_elems, timeout)) {
@@ -257,14 +219,13 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
         struct pollfd *polled_client_socket = &polled_sockets.elems[i];
 
         if (polled_client_socket->revents & POLLIN) {
-            char bytes[512];
-            int num_bytes =
-                (int)recv(polled_client_socket->fd, bytes, sizeof(bytes), 0);
+            char buf[512];
+            int len = (int)recv(polled_client_socket->fd, buf, sizeof buf, 0);
 
             mmo_client_t *client = &server->clients.elems[i - 1];
 
             /* No data to read. */
-            if (num_bytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            if (len == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
                 mmo_log_fmt(MMO_LOG_WARNING,
                             "recv(): returned empty for client (%s).",
                             client->ip);
@@ -272,14 +233,14 @@ void mmo_server_poll(mmo_server_t *server, int timeout_millisecs) {
             }
 
             /* Client disconnected gracefully (0) or error (-1). */
-            if (num_bytes <= 0) {
-                mmo_disconnect_client(server, client);
+            if (len <= 0) {
+                client->state = MMO_CLIENT_STATE_TO_BE_REMOVED;
                 continue;
             }
 
-            mmo_telnet_parse((mmo_char_span_t){.elems     = bytes,
-                                               .num_elems = (size_t)num_bytes},
-                             client, server);
+            mmo_char_arr_append_arr(
+                &client->in,
+                &(mmo_char_arr_t){.elems = buf, .num_elems = (size_t)len});
         }
     }
 

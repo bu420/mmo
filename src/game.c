@@ -137,38 +137,28 @@ static bool mmo_find_player(mmo_player_t *player, void *ctx) {
     return player->handle == *(mmo_client_handle_t *)ctx;
 }
 
-static void mmo_handle_new_and_old_clients(mmo_game_t *game,
-                                           mmo_server_t *server) {
-    /* Create new players. */
-    MMO_FOREACH(server->events.new_clients, handle) {
-        mmo_player_t new_player;
-        mmo_player_new(&new_player, server, *handle);
-
-        mmo_player_arr_append(&game->players, &new_player);
-    }
-
-    /* Remove players. */
-    for (size_t i = 0; i < server->events.removed_clients.num_elems; i += 1) {
-        mmo_player_t *player =
-            mmo_player_arr_find(&game->players, mmo_find_player,
-                                &server->events.removed_clients.elems[i]);
-
-        assert(player);
-
-        mmo_player_free(player);
-
-        if (player) {
-            mmo_player_arr_remove_from_ptr(&game->players, player);
-        }
-    }
-}
-
 static bool mmo_find_client(mmo_client_t *client, void *ctx) {
     return client->handle == *(mmo_client_handle_t *)ctx;
 }
 
 void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
-    mmo_handle_new_and_old_clients(game, server);
+    MMO_FOREACH(server->clients, client) {
+        if (client->state == MMO_CLIENT_STATE_NEW) {
+            mmo_player_t new_player;
+            mmo_player_new(&new_player, server, client->handle);
+
+            mmo_player_arr_append(&game->players, &new_player);
+        }
+
+        else if (client->state == MMO_CLIENT_STATE_TO_BE_REMOVED) {
+            mmo_player_t *player = mmo_player_arr_find(
+                &game->players, mmo_find_player, &client->handle);
+            assert(player);
+
+            mmo_player_free(player);
+            mmo_player_arr_remove_from_ptr(&game->players, player);
+        }
+    }
 
     /* Update players. */
     MMO_FOREACH(game->players, player) {
