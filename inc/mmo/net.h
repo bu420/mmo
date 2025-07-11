@@ -6,7 +6,6 @@
 
 #include <mmo/arr/char.h>
 #include <mmo/arr/client.h>
-#include <mmo/arr/telopt.h>
 
 #define MMO_CLIENTS_MAX 50
 

@@ -1,7 +1,6 @@
+#include "mmo/state.h"
 #include <mmo/game.h>
 
-#include <stdio.h>
-#include <string.h>
 #include <assert.h>
 #include <stdarg.h>
 
@@ -10,7 +9,7 @@
 #include <mmo/arr/client.h>
 #include <mmo/arr/player.h>
 #include <mmo/arr/char_arr.h>
-#include <mmo/input.h>
+#include <mmo/io.h>
 
 void mmo_player_new(mmo_player_t *player, mmo_server_t *server,
                     mmo_client_handle_t handle) {
@@ -20,113 +19,23 @@ void mmo_player_new(mmo_player_t *player, mmo_server_t *server,
     assert(server);
 
     player->handle = handle;
-    player->state  = MMO_PLAYER_STATE_LOGIN;
-
-    player->sent_greeting = false;
 
     mmo_char_arr_new(&player->name);
+
+    player->state = MMO_STATE_GREETING;
+    mmo_state_greeting_new(player, server);
 }
 
 void mmo_player_free(mmo_player_t *player) { mmo_char_arr_free(&player->name); }
 
-static void mmo_prompt(mmo_player_t *player, mmo_server_t *server) {
-    char *prompt = ">";
-
-    mmo_server_send(
-        server, player->handle,
-        (mmo_char_span_t){.elems = prompt, .num_elems = strlen(prompt)});
-}
-
-typedef enum mmo_print_type_e {
-    MMO_PRINT_AFTER_COMMAND,
-    MMO_PRINT_INTERRUPT
-} mmo_print_type_t;
-
-static void mmo_print_fmt(mmo_player_t *player, mmo_server_t *server,
-                          mmo_print_type_t action, const char *fmt, ...) {
-    mmo_char_span_t out = {.elems = "\r\n", .num_elems = 2};
-
-    if (action == MMO_PRINT_INTERRUPT) {
-        mmo_server_send(server, player->handle, out);
-    }
-
-    char buf[1024];
-
-    va_list args;
-    va_start(args, fmt);
-
-    size_t len = (size_t)vsnprintf(buf, sizeof buf, fmt, args);
-
-    va_end(args);
-
-    out.elems     = buf;
-    out.num_elems = len;
-    mmo_server_send(server, player->handle, out);
-
-    out.elems     = "\r\n";
-    out.num_elems = 2;
-    mmo_server_send(server, player->handle, out);
-
-    mmo_prompt(player, server);
-}
-
 void mmo_player_update(mmo_player_t *player, mmo_game_t *game,
                        mmo_server_t *server, mmo_char_arr_t *in) {
-    (void)server;
-
     assert(player);
+    assert(game);
     assert(server);
     assert(in);
 
-    switch (player->state) {
-        case MMO_PLAYER_STATE_LOGIN: {
-            if (!player->sent_greeting) {
-                player->sent_greeting = true;
-
-                static char greeting[] = {
-#embed "greeting.ans"
-                };
-
-                mmo_server_send(
-                    server, player->handle,
-                    (mmo_char_span_t){.elems     = greeting,
-                                      .num_elems = sizeof greeting});
-
-                mmo_prompt(player, server);
-            }
-
-            mmo_char_arr_t line;
-            mmo_char_arr_new(&line);
-
-            if (mmo_get_line(&line, in)) {
-                if (line.num_elems == 0) {
-                    mmo_prompt(player, server);
-                }
-
-                else {
-                    MMO_FOREACH(game->players, other) {
-                        if (other->handle != player->handle) {
-                            mmo_print_fmt(other, server, MMO_PRINT_INTERRUPT,
-                                          "Someone said %.*s",
-                                          (int)line.num_elems, line.elems);
-                        }
-                    }
-
-                    mmo_print_fmt(player, server, MMO_PRINT_AFTER_COMMAND,
-                                  "You said %.*s", (int)line.num_elems,
-                                  line.elems);
-                }
-            }
-
-            mmo_char_arr_free(&line);
-
-            break;
-        }
-
-        case MMO_PLAYER_STATE_FISHING: {
-            break;
-        }
-    }
+    mmo_state_update(player, game, server, in, player->state);
 }
 
 void mmo_game_new(mmo_game_t *game) { mmo_player_arr_new(&game->players); }
