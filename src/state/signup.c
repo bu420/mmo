@@ -1,6 +1,5 @@
-#include <mmo/state.h>
-
 #include <mmo/game.h>
+
 #include <mmo/io.h>
 
 void mmo_state_signup_new(mmo_player_t *player, mmo_server_t *server) {

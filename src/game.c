@@ -1,4 +1,3 @@
-#include "mmo/state.h"
 #include <mmo/game.h>
 
 #include <assert.h>
