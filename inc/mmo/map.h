@@ -26,6 +26,10 @@
         bool (*eq)(K, K);                                                      \
     }
 
+typedef mmo_map(char *, int) mmo_string_to_int_map_t;
+typedef mmo_map(char *, float) mmo_string_to_float_map_t;
+typedef mmo_map(char *, char *) mmo_string_to_string_map_t;
+
 #define mmo_map_new(M, HASH, EQ)                                               \
     do {                                                                       \
         mmo_generic_assign(M.keys, calloc(MMO_MAP_CAP, sizeof(M.keys[0])));    \
@@ -116,32 +120,5 @@
                                                                                \
         _mmo_map_set(M, K, V);                                                 \
     } while (0)
-
-static uint64_t hash(char *key) {
-    uint64_t hash = 14695981039346656037UL;
-
-    for (char *b = key; *b; b++) {
-        hash ^= (uint64_t)(uint8_t)*b;
-        hash *= 1099511628211UL;
-    }
-
-    return hash;
-}
-
-static bool eq(char *a, char *b) { return strcmp(a, b) == 0; }
-
-int main(void) {
-    mmo_map(char *, double) map;
-    mmo_map_new(map, hash, eq);
-
-    mmo_map_set(map, "key", 3.14);
-
-    double *val;
-    mmo_map_get(map, "key", val);
-
-    printf("%f\n", *val);
-
-    mmo_map_free(map);
-}
 
 #endif

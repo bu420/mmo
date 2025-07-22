@@ -6,29 +6,18 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
-#include <assert.h>
 
 static FILE *log = NULL;
 
-void mmo_log_init() {
-    /* Performance optimization: make stdout fully buffered instead of line
-     * buffered. */
-    // setvbuf(stdout, NULL, _IOFBF, 4096);
-
-    log = fopen("log.txt", "w");
-
-    if (!log) {
-        puts("fopen(): failed to open log.txt.\n");
-        exit(EXIT_FAILURE);
-    }
-}
-
-void mmo_log_free() { fclose(log); }
-
 void mmo_log_fmt(const char *level, const char *fmt, ...) {
-    assert(level);
-    assert(fmt);
-    assert(log && "Call mmo_log_init() first.");
+    if (!log) {
+        log = fopen("log.txt", "w");
+
+        if (!log) {
+            puts("fopen(): failed to open log.txt.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
 
     char buf[1024];
     char *pos = buf;

@@ -4,8 +4,7 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 
-#include <mmo/arr/char.h>
-#include <mmo/arr/client.h>
+#include <mmo/arr.h>
 
 #define MMO_CLIENTS_MAX 50
 
@@ -22,18 +21,20 @@ typedef struct mmo_client_s {
     union {
         mmo_client_handle_t handle;
         mmo_socket_t socket;
-    };
+    } conn;
 
     mmo_client_state_t state;
 
     /* Received data. */
-    mmo_char_arr_t in;
+    mmo_byte_arr_t in;
 
     /* Outgoing data. */
-    mmo_char_arr_t out;
+    mmo_byte_arr_t out;
 
     char ip[INET_ADDRSTRLEN];
 } mmo_client_t;
+
+typedef mmo_arr(mmo_client_t) mmo_client_arr_t;
 
 typedef struct mmo_server_s {
     mmo_socket_t listener;
@@ -46,6 +47,6 @@ void mmo_server_listen(mmo_server_t *server, int port);
 void mmo_server_poll(mmo_server_t *server);
 void mmo_server_remove_client(mmo_server_t *server, mmo_client_handle_t handle);
 void mmo_server_send(mmo_server_t *server, mmo_client_handle_t handle,
-                     mmo_char_span_t data);
+                     mmo_byte_arr_t data);
 
 #endif

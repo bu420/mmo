@@ -31,6 +31,7 @@ target_compile_options(server PRIVATE
     -Wconversion
     -Wshadow
     -Wunused
+    -Wno-error=unused
     -Wswitch-enum
     -pedantic-errors
 )

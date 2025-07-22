@@ -2,13 +2,20 @@
 #define MMO_META_H
 
 #define mmo_concat2(A, B) A##B
-#define mmo_cancat(A, B)  mmo_concat2(A, B)
+#define mmo_concat(A, B)  mmo_concat2(A, B)
 
-/* Generate unique names for internal macro identifiers to avoid name collision
-   if you call the macro more than once in the scope or function. */
-#define mmo_unique(NAME) mmo_cancat(NAME, __LINE__)
+/* Generate unique name for internal macro identifiers. */
+#define mmo_unique(NAME) mmo_concat(NAME, __LINE__)
 
-/* Assign pointer of any type to pointer of any type without cast. */
+#if !defined(NDEBUG) && defined(__GNUC__)
+#define mmo_static_assert(COND, MSG)                                           \
+    __attribute__((unused)) typedef char mmo_unique(                           \
+        mmo_static_assert)[(COND) ? 1 : -1]
+#else
+#define mmo_static_assert(COND, MSG)
+#endif
+
+/* Assign pointer to pointer without type cast. */
 #define mmo_generic_assign(A, B)                                               \
     do {                                                                       \
         void *mmo_unique(m) = B;                                               \

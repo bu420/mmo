@@ -7,27 +7,18 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#include <mmo/log.h>
-#include <mmo/game.h>
-#include <mmo/arr/char.h>
+#include <mmo/arr.h>
 
-static bool mmo_has_complete_line(mmo_char_arr_t *in, size_t *len) {
-    assert(in);
-    assert(len);
-
-    for (*len = 0; *len < in->num_elems; *len += 1) {
-        if (in->elems[*len] == '\r' || in->elems[*len] == '\n') {
+static bool mmo_has_complete_line(mmo_byte_arr_t in, size_t *len) {
+    for (*len = 0; *len < mmo_arr_len(in); *len += 1) {
+        if (in[*len] == '\r' || in[*len] == '\n') {
             return true;
         }
     }
-
     return false;
 }
 
-bool mmo_get_line(mmo_char_arr_t *line, mmo_char_arr_t *in) {
-    assert(line);
-    assert(in);
-
+bool mmo_get_line(mmo_byte_arr_t line, mmo_byte_arr_t in) {
     /* Find line length. */
 
     size_t len;
@@ -38,30 +29,29 @@ bool mmo_get_line(mmo_char_arr_t *line, mmo_char_arr_t *in) {
 
     /* Append printable characters to line buffer. */
     for (size_t i = 0; i < len; i += 1) {
-        if (in->elems[i] >= 0x20 && in->elems[i] <= 0x7e) {
-            mmo_char_arr_append(line, &in->elems[i]);
+        if (in[i] >= 0x20 && in[i] <= 0x7e) {
+            mmo_arr_append(line, in[i]);
         }
     }
 
     /* Consume line and newline characters. */
 
-    for (; len < in->num_elems &&
-           (in->elems[len] == '\r' || in->elems[len] == '\n');
+    for (; len < mmo_arr_len(in) && (in[len] == '\r' || in[len] == '\n');
          len += 1)
         ;
 
-    mmo_char_arr_remove_n(in, 0, len);
+    mmo_arr_remove_n(in, 0, len);
 
     return true;
 }
 
-bool mmo_str_eq_ignore_case(mmo_char_span_t a, mmo_char_span_t b) {
-    if (a.num_elems != b.num_elems) {
+bool mmo_str_eq_ignore_case(mmo_byte_arr_t a, mmo_byte_arr_t b) {
+    if (mmo_arr_len(a) != mmo_arr_len(b)) {
         return false;
     }
 
-    for (size_t i = 0; i < a.num_elems; i += 1) {
-        if (tolower(a.elems[i]) != tolower(b.elems[i])) {
+    for (size_t i = 0; i < mmo_arr_len(a); i += 1) {
+        if (tolower(a[i]) != tolower(b[i])) {
             return false;
         }
     }
@@ -69,38 +59,40 @@ bool mmo_str_eq_ignore_case(mmo_char_span_t a, mmo_char_span_t b) {
     return true;
 }
 
-void mmo_prompt(mmo_player_t *player, mmo_server_t *server) {
+void mmo_prompt(mmo_user_t *user, mmo_app_t *app) {
     char *prompt = ">";
 
-    mmo_server_send(
-        server, player->handle,
-        (mmo_char_span_t){.elems = prompt, .num_elems = strlen(prompt)});
+    mmo_byte_arr_t msg;
+    mmo_arr_new(msg);
+    mmo_arr_append_n(msg, strlen(prompt), prompt);
+
+    mmo_server_send(&app->server, user->handle, msg);
 }
 
-void mmo_print_fmt(mmo_player_t *player, mmo_server_t *server,
+void mmo_print_fmt(mmo_user_t *user, mmo_app_t *app,
                    mmo_print_type_t action, const char *fmt, ...) {
-    mmo_char_span_t out = {.elems = "\r\n", .num_elems = 2};
+    mmo_byte_arr_t out;
+    mmo_arr_from_string_literal(out, "\r\n", 2);
 
     if (action == MMO_PRINT_INTERRUPT) {
-        mmo_server_send(server, player->handle, out);
+        mmo_server_send(&app->server, user->handle, out);
     }
 
-    char buf[1024];
+    mmo_arr_new_reserve(out, 1024);
 
     va_list args;
     va_start(args, fmt);
 
-    size_t len = (size_t)vsnprintf(buf, sizeof buf, fmt, args);
+    mmo_arr_len(out) = (size_t)vsnprintf((char *)out, mmo_arr_cap(out), fmt, args);
 
     va_end(args);
 
-    out.elems     = buf;
-    out.num_elems = len;
-    mmo_server_send(server, player->handle, out);
+    mmo_server_send(&app->server, user->handle, out);
 
-    out.elems     = "\r\n";
-    out.num_elems = 2;
-    mmo_server_send(server, player->handle, out);
+    mmo_arr_free(out);
 
-    mmo_prompt(player, server);
+    mmo_arr_from_string_literal(out, "\r\n", 2);
+    mmo_server_send(&app->server, user->handle, out);
+
+    mmo_prompt(user, app);
 }

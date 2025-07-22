@@ -10,13 +10,8 @@
 #include <mmo/arr/char_arr.h>
 #include <mmo/io.h>
 
-void mmo_player_new(mmo_player_t *player, mmo_server_t *server,
+void mmo_user_new(mmo_player_t *player, mmo_server_t *server,
                     mmo_client_handle_t handle) {
-    (void)server;
-
-    assert(player);
-    assert(server);
-
     player->handle = handle;
 
     mmo_char_arr_new(&player->name);
@@ -29,11 +24,6 @@ void mmo_player_free(mmo_player_t *player) { mmo_char_arr_free(&player->name); }
 
 void mmo_player_update(mmo_player_t *player, mmo_game_t *game,
                        mmo_server_t *server, mmo_char_arr_t *in) {
-    assert(player);
-    assert(game);
-    assert(server);
-    assert(in);
-
     mmo_state_update(player, game, server, in, player->state);
 }
 
