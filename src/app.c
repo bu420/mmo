@@ -1,69 +1,73 @@
-#include <mmo/game.h>
+#include <ae/app.h>
 
 #include <assert.h>
 #include <stdarg.h>
 
-#include <mmo/arr/char.h>
-#include <mmo/net.h>
-#include <mmo/arr/client.h>
-#include <mmo/arr/player.h>
-#include <mmo/arr/char_arr.h>
-#include <mmo/io.h>
+#include <ae/net.h>
+#include <ae/io.h>
 
-void mmo_user_new(mmo_player_t *player, mmo_server_t *server,
-                    mmo_client_handle_t handle) {
-    player->handle = handle;
+void ae_user_new(ae_user_t *user, ae_app_t *app, ae_client_handle_t handle) {
+    user->handle = handle;
 
-    mmo_char_arr_new(&player->name);
+    ae_arr_new(user->data.name);
 
-    player->state = MMO_STATE_GREETING;
-    mmo_state_greeting_new(player, server);
+    user->state = AE_STATE_GREETING;
+    ae_state_new(user, app);
 }
 
-void mmo_player_free(mmo_player_t *player) { mmo_char_arr_free(&player->name); }
-
-void mmo_player_update(mmo_player_t *player, mmo_game_t *game,
-                       mmo_server_t *server, mmo_char_arr_t *in) {
-    mmo_state_update(player, game, server, in, player->state);
+void ae_user_free(ae_user_t *user) {
+    ae_arr_free(user->data.name);
 }
 
-void mmo_game_new(mmo_game_t *game) { mmo_player_arr_new(&game->players); }
-
-void mmo_game_free(mmo_game_t *game) { mmo_player_arr_free(&game->players); }
-
-static bool mmo_find_player(mmo_player_t *player, void *ctx) {
-    return player->handle == *(mmo_client_handle_t *)ctx;
+void ae_user_update(ae_user_t *user, ae_app_t *app, ae_byte_arr_t in) {
+    ae_state_update(user, app, in);
 }
 
-static bool mmo_find_client(mmo_client_t *client, void *ctx) {
-    return client->handle == *(mmo_client_handle_t *)ctx;
+void ae_app_new(ae_app_t *app) {
+    ae_map_new_reserve(app->users, AE_CLIENTS_MAX, ae_hash_client_handle,
+                       ae_eq_client_handle);
 }
 
-void mmo_game_update(mmo_game_t *game, mmo_server_t *server) {
-    MMO_FOREACH(server->clients, client) {
-        if (client->state == MMO_CLIENT_STATE_NEW) {
-            mmo_player_t new_player;
-            mmo_player_new(&new_player, server, client->handle);
+void ae_app_free(ae_app_t *app) {
+    ae_map_free(app->users);
+}
 
-            mmo_player_arr_append(&game->players, &new_player);
+void ae_app_update(ae_app_t *app) {
+    for (size_t i = 0; i < app->server.clients.cap; i++) {
+        if (app->server.clients.states[i] != AE_MAP_ENTRY_STATE_USED) {
+            continue;
         }
 
-        else if (client->state == MMO_CLIENT_STATE_TO_BE_REMOVED) {
-            mmo_player_t *player = mmo_player_arr_find(
-                &game->players, mmo_find_player, &client->handle);
-            assert(player);
+        ae_client_t *client = &app->server.clients.vals[i];
 
-            mmo_player_free(player);
-            mmo_player_arr_remove_from_ptr(&game->players, player);
+        if (client->state == AE_CLIENT_STATE_NEW) {
+            ae_user_t new_user;
+            ae_user_new(&new_user, app, client->conn.handle);
+            ae_map_set(app->users, new_user.handle, new_user);
+        }
+
+        else if (client->state == AE_CLIENT_STATE_TO_BE_REMOVED) {
+            ae_user_t *user;
+            ae_map_get(app->users, client->conn.handle, user);
+            assert(user);
+
+            ae_user_free(user);
+            ae_map_remove(app->users, client->conn.handle);
         }
     }
 
-    /* Update players. */
-    MMO_FOREACH(game->players, player) {
-        mmo_client_t *client = mmo_client_arr_find(
-            &server->clients, mmo_find_client, &player->handle);
+    /* Update users. */
+    for (size_t i = 0; i < app->users.cap; i++) {
+        if (app->users.states[i] != AE_MAP_ENTRY_STATE_USED) {
+            continue;
+        }
+
+        ae_user_t *user = &app->users.vals[i];
+
+        ae_client_t *client;
+        ae_map_get(app->server.clients, user->handle, client);
         assert(client);
 
-        mmo_player_update(player, game, server, &client->in);
+        ae_user_update(user, app, client->in);
     }
 }

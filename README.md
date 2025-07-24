@@ -1,5 +1,5 @@
-# Depthcaller
+# ae
 
-Depthcaller is a text-based multiplayer fishing adventure MUD.
-It is written in standard C99 for POSIX without any external dependencies.
-Use a TCP client like Netcat or alternatively a Telnet client to connect.
+![](https://github.com/bu420/mmo/ae.png)
+
+TCP multi-user experience. Connect with Netcat or a Telnet client.

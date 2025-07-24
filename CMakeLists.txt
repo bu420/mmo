@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-project(mmo LANGUAGES C)
+project(ae LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -12,7 +12,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/inc/mmo/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc/ae/*.h
     ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
 )
 
@@ -31,7 +31,7 @@ target_compile_options(server PRIVATE
     -Wconversion
     -Wshadow
     -Wunused
-    -Wno-error=unused
+    -Wno-error=unused-parameter
     -Wswitch-enum
     -pedantic-errors
 )

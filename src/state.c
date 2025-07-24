@@ -1,74 +1,91 @@
-#include <mmo/state.h>
 
-#include <mmo/game.h>
+#include <ae/app.h>
 
-void mmo_state_new(mmo_player_t *player, mmo_server_t *server,
-                   mmo_state_t state) {
-    switch (state) {
-        case MMO_STATE_GREETING:
-            mmo_state_greeting_new(player, server);
+#include <ae/io.h>
+#include <ae/arr.h>
+
+void ae_state_new(ae_user_t *user, ae_app_t *app) {
+    switch (user->state) {
+        case AE_STATE_GREETING: {
+            ae_byte_arr_t greeting;
+            ae_arr_from_string_literal(
+                greeting,
+                "\x1b[31;40mBlood of Draemothuul\x1b[0m\r\n"
+                "Enter your name or NEW.\r\n",
+                59);
+
+            ae_server_send(&app->server, user->handle, greeting);
+            ae_prompt(user, app);
+            break;
+        }
+
+        case AE_STATE_SIGNUP:
             break;
 
-        case MMO_STATE_SIGNUP:
-            mmo_state_signup_new(player, server);
+        case AE_STATE_LOGIN:
             break;
 
-        case MMO_STATE_LOGIN:
-            mmo_state_login_new(player, server);
-            break;
-
-        case MMO_STATE_GAME:
-            mmo_state_main_game_new(player, server);
-            break;
-    }
-}
-
-void mmo_state_free(mmo_player_t *player, mmo_server_t *server,
-                    mmo_state_t state) {
-    switch (state) {
-        case MMO_STATE_GREETING:
-            mmo_state_greeting_free(player, server);
-            break;
-
-        case MMO_STATE_SIGNUP:
-            mmo_state_signup_free(player, server);
-            break;
-
-        case MMO_STATE_LOGIN:
-            mmo_state_login_free(player, server);
-            break;
-
-        case MMO_STATE_MAIN_GAME:
-            mmo_state_main_game_free(player, server);
+        case AE_STATE_GAME:
             break;
     }
 }
 
-void mmo_state_update(mmo_player_t *player, mmo_game_t *game,
-                      mmo_server_t *server, mmo_char_arr_t *in,
-                      mmo_state_t state) {
-    switch (state) {
-        case MMO_STATE_GREETING:
-            mmo_state_greeting_update(player, game, server, in);
+void ae_state_free(ae_user_t *user, ae_app_t *app) {
+    switch (user->state) {
+        case AE_STATE_GREETING:
             break;
 
-        case MMO_STATE_SIGNUP:
-            mmo_state_signup_update(player, game, server, in);
+        case AE_STATE_SIGNUP:
             break;
 
-        case MMO_STATE_LOGIN:
-            mmo_state_login_update(player, game, server, in);
+        case AE_STATE_LOGIN:
             break;
 
-        case MMO_STATE_MAIN_GAME:
-            mmo_state_main_game_update(player, game, server, in);
+        case AE_STATE_GAME:
             break;
     }
 }
 
-void mmo_state_switch(mmo_player_t *player, mmo_server_t *server,
-                      mmo_state_t state) {
-    mmo_state_free(player, server, player->state);
-    mmo_state_new(player, server, state);
-    player->state = state;
+void ae_state_update(ae_user_t *user, ae_app_t *app, ae_byte_arr_t in) {
+    switch (user->state) {
+        case AE_STATE_GREETING: {
+            ae_byte_arr_t line;
+            ae_arr_new(line);
+
+            if (ae_get_line(line, in)) {
+                if (ae_arr_len(line) == 0) {
+                    ae_prompt(user, app);
+                }
+
+                else {
+                    ae_byte_arr_t signup_new;
+                    ae_arr_from_string_literal(signup_new, "new", 3);
+
+                    if (ae_str_eq_ignore_case(line, signup_new)) {
+                        ae_state_switch(user, app, AE_STATE_SIGNUP);
+                    } else {
+                        ae_state_switch(user, app, AE_STATE_LOGIN);
+                    }
+                }
+            }
+
+            ae_arr_free(line);
+            break;
+        }
+
+        case AE_STATE_SIGNUP:
+            break;
+
+        case AE_STATE_LOGIN:
+            break;
+
+        case AE_STATE_GAME:
+            break;
+    }
+}
+
+void ae_state_switch(ae_user_t *user, ae_app_t *app, ae_state_t state) {
+    ae_state_free(user, app);
+    user->state = state;
+    ae_state_new(user, app);
 }

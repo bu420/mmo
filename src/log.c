@@ -1,4 +1,4 @@
-#include <mmo/log.h>
+#include <ae/log.h>
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -7,9 +7,9 @@
 #include <time.h>
 #include <string.h>
 
-static FILE *log = NULL;
+void ae_log(const char *level, const char *msg) {
+    static FILE *log = NULL;
 
-void mmo_log_fmt(const char *level, const char *fmt, ...) {
     if (!log) {
         log = fopen("log.txt", "w");
 
@@ -19,31 +19,13 @@ void mmo_log_fmt(const char *level, const char *fmt, ...) {
         }
     }
 
-    char buf[1024];
-    char *pos = buf;
-
-    /* Append date to buffer (UTC). */
-
     time_t now   = time(NULL);
     struct tm tm = *gmtime(&now);
     char date[100];
     strftime(date, 100, "%F %T", &tm);
 
-    pos += snprintf(pos, 256, "[%s %s]: ", date, level);
-
-    /* Append arguments supplied by caller to buffer. */
-
-    va_list args;
-    va_start(args, fmt);
-
-    pos += vsnprintf(pos, 765, fmt, args);
-
-    va_end(args);
-
-    memcpy(pos, "\r\n\0", 3);
-    pos += 2;
-
-    size_t len = (size_t)(pos - buf);
+    char buf[1024];
+    size_t len = (size_t)snprintf(buf, sizeof buf, "[%s %s]: %s\r\n", date, level, msg);
 
     /* Write buffer to file. */
     fwrite(buf, len, 1, log);
@@ -51,4 +33,15 @@ void mmo_log_fmt(const char *level, const char *fmt, ...) {
 
     /* Write buffer to terminal. */
     fwrite(buf, len, 1, stdout);
+}
+
+void ae_log_fmt(const char *level, const char *fmt, ...) {
+    char buf[924];
+
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof buf, fmt, args);
+    va_end(args);
+
+    ae_log(level, buf);
 }
