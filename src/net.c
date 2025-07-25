@@ -92,9 +92,6 @@ void ae_server_listen(ae_server_t *server, int port) {
 static void ae_disconnect_client(ae_server_t *server, ae_client_t *client) {
     ae_log_fmt(AE_LOG_INFO, "Client disconnected (%s).", client->ip);
 
-    char *goodbye = "\r\nGoodbye.\r\n";
-    send(client->conn.socket, goodbye, strlen(goodbye), 0);
-
     close(client->conn.socket);
 
     ae_arr_free(client->in);
@@ -261,11 +258,14 @@ void ae_server_remove_client(ae_server_t *server, ae_client_handle_t handle) {
     ae_map_get(server->clients, handle, client);
     assert(client);
 
+    char *goodbye = "\r\nGoodbye.\r\n";
+    send(client->conn.socket, goodbye, strlen(goodbye), 0);
+
     client->state = AE_CLIENT_STATE_TO_BE_REMOVED;
 }
 
 void ae_server_send(ae_server_t *server, ae_client_handle_t handle,
-                    ae_byte_arr_t data) {
+                    const ae_byte_arr_t data) {
     ae_client_t *client;
     ae_map_get(server->clients, handle, client);
     assert(client);

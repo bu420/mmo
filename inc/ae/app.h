@@ -11,7 +11,7 @@ typedef enum ae_state_e {
     AE_STATE_GREETING,
     AE_STATE_SIGNUP,
     AE_STATE_LOGIN,
-    AE_STATE_GAME
+    AE_STATE_MAIN
 } ae_state_t;
 
 typedef struct ae_user_s {
@@ -38,7 +38,7 @@ typedef struct ae_app_s {
 
 void ae_user_new(ae_user_t *user, ae_app_t *app, ae_client_handle_t handle);
 void ae_user_free(ae_user_t *user);
-void ae_user_update(ae_user_t *user, ae_app_t *app, ae_byte_arr_t in);
+void ae_user_update(ae_user_t *user, ae_app_t *app, ae_byte_arr_t *in);
 
 void ae_app_new(ae_app_t *app);
 void ae_app_free(ae_app_t *app);
@@ -46,7 +46,7 @@ void ae_app_update(ae_app_t *app);
 
 void ae_state_new(ae_user_t *user, ae_app_t *app);
 void ae_state_free(ae_user_t *user, ae_app_t *app);
-void ae_state_update(ae_user_t *user, ae_app_t *app, ae_byte_arr_t in);
+void ae_state_update(ae_user_t *user, ae_app_t *app, ae_byte_arr_t *in);
 void ae_state_switch(ae_user_t *user, ae_app_t *app, ae_state_t state);
 
 #endif

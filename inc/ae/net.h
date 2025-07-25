@@ -57,6 +57,6 @@ void ae_server_listen(ae_server_t *server, int port);
 void ae_server_poll(ae_server_t *server);
 void ae_server_remove_client(ae_server_t *server, ae_client_handle_t handle);
 void ae_server_send(ae_server_t *server, ae_client_handle_t handle,
-                    ae_byte_arr_t data);
+                    const ae_byte_arr_t data);
 
 #endif

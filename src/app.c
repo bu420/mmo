@@ -19,7 +19,7 @@ void ae_user_free(ae_user_t *user) {
     ae_arr_free(user->data.name);
 }
 
-void ae_user_update(ae_user_t *user, ae_app_t *app, ae_byte_arr_t in) {
+void ae_user_update(ae_user_t *user, ae_app_t *app, ae_byte_arr_t *in) {
     ae_state_update(user, app, in);
 }
 
@@ -68,6 +68,6 @@ void ae_app_update(ae_app_t *app) {
         ae_map_get(app->server.clients, user->handle, client);
         assert(client);
 
-        ae_user_update(user, app, client->in);
+        ae_user_update(user, app, &client->in);
     }
 }

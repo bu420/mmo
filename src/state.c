@@ -25,7 +25,7 @@ void ae_state_new(ae_user_t *user, ae_app_t *app) {
         case AE_STATE_LOGIN:
             break;
 
-        case AE_STATE_GAME:
+        case AE_STATE_MAIN:
             break;
     }
 }
@@ -41,22 +41,21 @@ void ae_state_free(ae_user_t *user, ae_app_t *app) {
         case AE_STATE_LOGIN:
             break;
 
-        case AE_STATE_GAME:
+        case AE_STATE_MAIN:
             break;
     }
 }
 
-void ae_state_update(ae_user_t *user, ae_app_t *app, ae_byte_arr_t in) {
+void ae_state_update(ae_user_t *user, ae_app_t *app, ae_byte_arr_t *in) {
     switch (user->state) {
         case AE_STATE_GREETING: {
             ae_byte_arr_t line;
             ae_arr_new(line);
 
-            if (ae_get_line(line, in)) {
-                if (ae_arr_len(line) == 0) {
+            if (ae_get_line(&line, in)) {
+                /*if (ae_arr_len(line) == 0) {
                     ae_prompt(user, app);
                 }
-
                 else {
                     ae_byte_arr_t signup_new;
                     ae_arr_from_string_literal(signup_new, "new", 3);
@@ -66,20 +65,39 @@ void ae_state_update(ae_user_t *user, ae_app_t *app, ae_byte_arr_t in) {
                     } else {
                         ae_state_switch(user, app, AE_STATE_LOGIN);
                     }
-                }
+                }*/
+                ae_prompt(user, app);
             }
 
             ae_arr_free(line);
             break;
         }
 
-        case AE_STATE_SIGNUP:
-            break;
+        case AE_STATE_SIGNUP: {
+            ae_byte_arr_t line;
+            ae_arr_new(line);
 
-        case AE_STATE_LOGIN:
-            break;
+            if (ae_get_line(&line, in)) {
+                ae_prompt(user, app);
+            }
 
-        case AE_STATE_GAME:
+            ae_arr_free(line);
+            break;
+        }
+
+        case AE_STATE_LOGIN: {
+            ae_byte_arr_t line;
+            ae_arr_new(line);
+
+            if (ae_get_line(&line, in)) {
+                ae_prompt(user, app);
+            }
+
+            ae_arr_free(line);
+            break;
+        }
+
+        case AE_STATE_MAIN:
             break;
     }
 }
