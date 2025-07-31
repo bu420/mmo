@@ -1,11 +1,11 @@
 #ifndef AE_NET_H
 #define AE_NET_H
 
-#include <arpa/inet.h>
 #include <stdint.h>
+#include <stdbool.h>
+#include <arpa/inet.h>
 
-#include <ae/arr.h>
-#include <ae/map.h>
+#include <ae/meta.h>
 
 #define AE_CLIENTS_MAX 50
 
@@ -27,10 +27,10 @@ typedef struct ae_client_s {
     ae_client_state_t state;
 
     /* Received data. */
-    ae_byte_arr_t in;
+    ae_bytes_t in;
 
     /* Outgoing data. */
-    ae_byte_arr_t out;
+    ae_bytes_t out;
 
     char ip[INET_ADDRSTRLEN];
 } ae_client_t;
@@ -57,6 +57,6 @@ void ae_server_listen(ae_server_t *server, int port);
 void ae_server_poll(ae_server_t *server);
 void ae_server_remove_client(ae_server_t *server, ae_client_handle_t handle);
 void ae_server_send(ae_server_t *server, ae_client_handle_t handle,
-                    const ae_byte_arr_t data);
+                    const ae_bytes_t data);
 
 #endif

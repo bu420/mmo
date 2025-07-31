@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include <ae/map.h>
 #include <ae/app.h>
 #include <ae/net.h>
 #include <ae/log.h>
@@ -9,8 +8,6 @@
 #define AE_DEFAULT_PORT 2000
 
 int main(int argc, char *argv[]) {
-    puts("hi");
-
     int port = argc < 2 ? AE_DEFAULT_PORT : atoi(argv[1]);
 
     ae_app_t app;

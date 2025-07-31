@@ -13,8 +13,6 @@
 #include <sys/socket.h>
 #include <errno.h>
 
-#include <ae/arr.h>
-#include <ae/map.h>
 #include <ae/log.h>
 
 static int ae_socket_set_blocking(ae_socket_t socket, bool blocking) {
@@ -265,7 +263,7 @@ void ae_server_remove_client(ae_server_t *server, ae_client_handle_t handle) {
 }
 
 void ae_server_send(ae_server_t *server, ae_client_handle_t handle,
-                    const ae_byte_arr_t data) {
+                    const ae_bytes_t data) {
     ae_client_t *client;
     ae_map_get(server->clients, handle, client);
     assert(client);

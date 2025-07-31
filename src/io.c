@@ -1,15 +1,13 @@
 #include <ae/io.h>
 
+#include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <ctype.h>
+#include <assert.h>
 
-#include <ae/arr.h>
-
-static bool ae_has_complete_line(ae_byte_arr_t in, size_t *len) {
+static bool ae_has_complete_line(const ae_string_t in, size_t *len) {
     for (*len = 0; *len < ae_arr_len(in); *len += 1) {
         if (in[*len] == '\r' || in[*len] == '\n') {
             return true;
@@ -18,7 +16,7 @@ static bool ae_has_complete_line(ae_byte_arr_t in, size_t *len) {
     return false;
 }
 
-bool ae_get_line(ae_byte_arr_t *line, ae_byte_arr_t *in) {
+bool ae_get_line(ae_string_t *line, ae_string_t *in) {
     /* Find line length. */
 
     size_t len;
@@ -45,36 +43,22 @@ bool ae_get_line(ae_byte_arr_t *line, ae_byte_arr_t *in) {
     return true;
 }
 
-bool ae_str_eq_ignore_case(const ae_byte_arr_t a, const ae_byte_arr_t b) {
-    if (ae_arr_len(a) != ae_arr_len(b)) {
-        return false;
-    }
-
-    for (size_t i = 0; i < ae_arr_len(a); i += 1) {
-        if (tolower(a[i]) != tolower(b[i])) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 void ae_prompt(const ae_user_t *user, ae_app_t *app) {
-    ae_byte_arr_t msg;
-    ae_arr_from_string_literal(msg, ">", 1);
+    ae_bytes_t msg;
+    ae_arr_from_string_literal(msg, ">", 1, 0);
     ae_server_send(&app->server, user->handle, msg);
 }
 
 void ae_print_fmt(const ae_user_t *user, ae_app_t *app, ae_print_type_t action,
                   const char *fmt, ...) {
-    ae_byte_arr_t nl;
-    ae_arr_from_string_literal(nl, "\r\n", 2);
+    ae_bytes_t nl;
+    ae_arr_from_string_literal(nl, "\r\n", 2, 0);
 
     if (action == AE_PRINT_INTERRUPT) {
         ae_server_send(&app->server, user->handle, nl);
     }
 
-    ae_byte_arr_t out;
+    ae_bytes_t out;
     ae_arr_new_reserve(out, 1024);
 
     va_list args;
