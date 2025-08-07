@@ -26,8 +26,10 @@ void ae_user_update(ae_user_t *user, ae_app_t *app, ae_bytes_t *in) {
 }
 
 void ae_app_new(ae_app_t *app) {
-    ae_map_new_reserve(app->users.from_handle, AE_CLIENTS_MAX, ae_hash_client_handle, ae_eq_client_handle);
-    ae_map_new_reserve(app->users.from_username, AE_CLIENTS_MAX, ae_string_hash, ae_string_eq);
+    ae_map_new_reserve(app->users.from_handle, AE_CLIENTS_MAX, ae_handle_hash,
+                       ae_handle_eq);
+    ae_map_new_reserve(app->users.from_username, AE_CLIENTS_MAX,
+                       ae_string_hash, ae_string_eq);
 }
 
 void ae_app_free(ae_app_t *app) {
@@ -45,15 +47,15 @@ void ae_app_update(ae_app_t *app) {
             ae_user_new(user, app, client->conn.handle);
 
             ae_map_set(app->users.from_handle, user->handle, user);
-        }
-        else if (client->state == AE_CLIENT_STATE_TO_BE_REMOVED) {
+        } else if (client->state == AE_CLIENT_STATE_TO_BE_REMOVED) {
             ae_user_t **user;
             ae_map_get(app->users.from_handle, client->conn.handle, user);
-            
+
             ae_map_remove(app->users.from_handle, (*user)->handle);
 
             bool username_in_map;
-            ae_map_contains(app->users.from_username, (*user)->data.name, username_in_map);
+            ae_map_contains(app->users.from_username, (*user)->data.name,
+                            username_in_map);
 
             if (username_in_map) {
                 ae_map_remove(app->users.from_username, (*user)->data.name);
@@ -75,4 +77,8 @@ void ae_app_update(ae_app_t *app) {
     }
 }
 
+void ae_app_serialize(const ae_app_t *app) {
+}
 
+void ae_app_deserialize(ae_app_t *app) {
+}

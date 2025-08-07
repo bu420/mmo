@@ -8,7 +8,7 @@
 #include <assert.h>
 
 static bool ae_has_complete_line(const ae_string_t in, size_t *len) {
-    for (*len = 0; *len < ae_arr_len(in); *len += 1) {
+    for (*len = 0; *len < ae_alen(in); *len += 1) {
         if (in[*len] == '\r' || in[*len] == '\n') {
             return true;
         }
@@ -34,7 +34,7 @@ bool ae_get_line(ae_string_t *line, ae_string_t *in) {
 
     /* Consume line and newline characters. */
 
-    for (; len < ae_arr_len(*in) && ((*in)[len] == '\r' || (*in)[len] == '\n');
+    for (; len < ae_alen(*in) && ((*in)[len] == '\r' || (*in)[len] == '\n');
          len += 1)
         ;
 
@@ -63,8 +63,8 @@ void ae_print_fmt(const ae_user_t *user, ae_app_t *app, ae_print_type_t action,
 
     va_list args;
     va_start(args, fmt);
-    ae_arr_len(out) =
-        (size_t)vsnprintf((char *)out, ae_arr_cap(out), fmt, args);
+    ae_alen(out) =
+        (size_t)vsnprintf((char *)out, ae_acap(out), fmt, args);
     va_end(args);
 
     ae_server_send(&app->server, user->handle, out);

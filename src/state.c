@@ -72,7 +72,7 @@ void ae_state_update(ae_user_t *user, ae_app_t *app, ae_bytes_t *in) {
             ae_arr_new(line);
 
             if (ae_get_line(&line, (ae_string_t *)in)) {
-                if (ae_arr_len(line) == 0) {
+                if (ae_alen(line) == 0) {
                     ae_prompt(user, app);
                 } else {
                     ae_string_t signup_new;

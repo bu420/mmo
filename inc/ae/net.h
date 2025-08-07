@@ -10,7 +10,7 @@
 #define AE_CLIENTS_MAX 50
 
 typedef int ae_socket_t;
-typedef ae_socket_t ae_client_handle_t;
+typedef int ae_client_handle_t;
 
 typedef enum ae_client_state_e {
     AE_CLIENT_STATE_NEW,
@@ -36,15 +36,8 @@ typedef struct ae_client_s {
 } ae_client_t;
 
 typedef ae_map(ae_client_handle_t, ae_client_t) ae_handle_to_client_map_t;
-
-static inline uint64_t ae_hash_client_handle(ae_client_handle_t handle) {
-    return (uint64_t)handle;
-}
-
-static inline bool ae_eq_client_handle(ae_client_handle_t a,
-                                       ae_client_handle_t b) {
-    return a == b;
-}
+uint64_t ae_handle_hash(const ae_client_handle_t *handle);
+bool ae_handle_eq(const ae_client_handle_t *a, const ae_client_handle_t *b);
 
 typedef struct ae_server_s {
     ae_socket_t listener;

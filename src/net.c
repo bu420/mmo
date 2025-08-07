@@ -1,3 +1,4 @@
+#include "ae/meta.h"
 #include <ae/net.h>
 
 #include <stddef.h>
@@ -35,9 +36,16 @@ static int ae_socket_set_blocking(ae_socket_t socket, bool blocking) {
     return EXIT_SUCCESS;
 }
 
+uint64_t ae_handle_hash(const ae_client_handle_t *handle) {
+    return (uint64_t)*handle;
+}
+
+bool ae_handle_eq(const ae_client_handle_t *a, const ae_client_handle_t *b) {
+    return a == b;
+}
+
 void ae_server_new(ae_server_t *server) {
-    ae_map_new_reserve(server->clients, AE_CLIENTS_MAX, ae_hash_client_handle,
-                       ae_eq_client_handle);
+    ae_map_new_reserve(server->clients, AE_CLIENTS_MAX);
 }
 
 void ae_server_free(ae_server_t *server) {
@@ -95,7 +103,8 @@ static void ae_disconnect_client(ae_server_t *server, ae_client_t *client) {
     ae_arr_free(client->in);
     ae_arr_free(client->out);
 
-    ae_map_remove(server->clients, client->conn.handle);
+    ae_map_remove(server->clients, ae_handle_hash, ae_handle_eq,
+                  client->conn.handle);
 }
 
 static void ae_handle_conn(ae_server_t *server) {
@@ -134,16 +143,18 @@ static void ae_handle_conn(ae_server_t *server) {
     client.conn.socket = socket;
     client.state       = AE_CLIENT_STATE_NEW;
 
-    ae_arr_new(client.in);
-    ae_arr_new(client.out);
-
     if (!inet_ntop(addr.ss_family, &(((struct sockaddr_in *)&addr)->sin_addr),
                    client.ip, INET_ADDRSTRLEN)) {
+        close(socket);
         ae_log_fmt(AE_LOG_ERROR, "inet_ntop(): fail.");
         return;
     }
 
-    ae_map_set(server->clients, client.conn.handle, client);
+    ae_arr_new(client.in);
+    ae_arr_new(client.out);
+
+    ae_map_set(server->clients, ae_handle_hash, ae_handle_eq,
+               client.conn.handle, client);
 
     ae_log_fmt(AE_LOG_INFO, "Client connected (%s).", client.ip);
 }
@@ -158,13 +169,10 @@ void ae_server_poll(ae_server_t *server) {
     struct pollfd fd = {.fd = server->listener, .events = POLLIN};
     ae_arr_append(polled_sockets, fd);
 
-    for (size_t i = 0; i < server->clients.cap; i++) {
-        if (server->clients.states[i] != AE_MAP_ENTRY_STATE_USED) {
-            continue;
-        }
+    ae_client_handle_t *handle;
+    ae_client_t *client;
 
-        ae_client_t *client = &server->clients.vals[i];
-
+    ae_map_foreach(server->clients, handle, client) {
         if (client->state == AE_CLIENT_STATE_NEW) {
             client->state = AE_CLIENT_STATE_ONLINE;
         }
@@ -179,12 +187,11 @@ void ae_server_poll(ae_server_t *server) {
         ae_arr_append(polled_sockets, fd);
     }
 
-    /* poll(): While there are no connected clients, wait indefinitely (-1). */
+    /* poll(): while there are no connected clients, wait indefinitely (-1). */
 
-    int timeout = server->clients.len == 0 ? -1 : 0;
+    int timeout = server->clients.pop_bkts == 0 ? -1 : 0;
 
-    switch (
-        poll(polled_sockets, (nfds_t)ae_arr_len(polled_sockets), timeout)) {
+    switch (poll(polled_sockets, (nfds_t)ae_alen(polled_sockets), timeout)) {
         case -1:
             ae_log_fmt(AE_LOG_ERROR, "poll(): error.");
             exit(EXIT_FAILURE);
@@ -200,15 +207,15 @@ void ae_server_poll(ae_server_t *server) {
     }
 
     /* Check if client sockets have received data. */
-    for (size_t i = 1; i < ae_arr_len(polled_sockets); i += 1) {
-        struct pollfd *polled_client_socket = &polled_sockets[i];
+    for (size_t i = 1; i < ae_alen(polled_sockets); i += 1) {
+        struct pollfd polled_client_socket = polled_sockets[i];
 
-        if (polled_client_socket->revents & POLLIN) {
+        if (polled_client_socket.revents & POLLIN) {
             char buf[512];
-            int len = (int)recv(polled_client_socket->fd, buf, sizeof buf, 0);
+            int len = (int)recv(polled_client_socket.fd, buf, sizeof buf, 0);
 
-            ae_client_t *client;
-            ae_map_get(server->clients, polled_client_socket->fd, client);
+            ae_map_get(server->clients, ae_handle_hash, ae_handle_eq,
+                       polled_client_socket.fd, client);
             assert(client);
 
             /* No data to read. */
@@ -233,16 +240,12 @@ no_events:
     ae_arr_free(polled_sockets);
 
     /* Send outgoing data to clients. */
-    for (size_t i = 0; i < server->clients.cap; i++) {
-        if (server->clients.states[i] != AE_MAP_ENTRY_STATE_USED) {
-            continue;
-        }
-
+    ae_map_foreach(server->clients, i) {
         ae_client_t *client = &server->clients.vals[i];
 
-        if (ae_arr_len(client->out) > 0) {
+        if (ae_alen(client->out) > 0) {
             ssize_t num_bytes_sent = send(client->conn.socket, client->out,
-                                          ae_arr_len(client->out), 0);
+                                          ae_alen(client->out), 0);
 
             if (num_bytes_sent != -1) {
                 ae_arr_remove_n(client->out, 0, (size_t)num_bytes_sent);
@@ -269,5 +272,5 @@ void ae_server_send(ae_server_t *server, ae_client_handle_t handle,
     assert(client);
 
     /* Append message to out stream. */
-    ae_arr_append_n(client->out, ae_arr_len(data), data);
+    ae_arr_append_n(client->out, ae_alen(data), data);
 }
