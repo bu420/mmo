@@ -26,10 +26,8 @@ void ae_user_update(ae_user_t *user, ae_app_t *app, ae_bytes_t *in) {
 }
 
 void ae_app_new(ae_app_t *app) {
-    ae_map_new_reserve(app->users.from_handle, AE_CLIENTS_MAX, ae_handle_hash,
-                       ae_handle_eq);
-    ae_map_new_reserve(app->users.from_username, AE_CLIENTS_MAX,
-                       ae_string_hash, ae_string_eq);
+    ae_map_new_reserve(app->users.from_handle, AE_CLIENTS_MAX);
+    ae_map_new_reserve(app->users.from_username, AE_CLIENTS_MAX);
 }
 
 void ae_app_free(ae_app_t *app) {
@@ -38,27 +36,32 @@ void ae_app_free(ae_app_t *app) {
 }
 
 void ae_app_update(ae_app_t *app) {
-    ae_map_foreach(app->server.clients, i) {
-        ae_client_t *client = &app->server.clients.vals[i];
+    ae_client_handle_t *handle;
+    ae_client_t *client;
 
+    ae_map_foreach(app->server.clients, handle, client) {
         if (client->state == AE_CLIENT_STATE_NEW) {
             ae_user_t *user = malloc(sizeof(ae_user_t));
             assert(user);
             ae_user_new(user, app, client->conn.handle);
 
-            ae_map_set(app->users.from_handle, user->handle, user);
+            ae_map_set(app->users.from_handle, ae_handle_hash, ae_handle_eq,
+                       user->handle, user);
         } else if (client->state == AE_CLIENT_STATE_TO_BE_REMOVED) {
             ae_user_t **user;
-            ae_map_get(app->users.from_handle, client->conn.handle, user);
+            ae_map_get(app->users.from_handle, ae_handle_hash, ae_handle_eq,
+                       client->conn.handle, user);
 
-            ae_map_remove(app->users.from_handle, (*user)->handle);
+            ae_map_remove(app->users.from_handle, ae_handle_hash, ae_handle_eq,
+                          (*user)->handle);
 
-            bool username_in_map;
-            ae_map_contains(app->users.from_username, (*user)->data.name,
-                            username_in_map);
+            bool username_exists;
+            ae_map_contains(app->users.from_username, ae_string_hash,
+                            ae_string_eq, (*user)->data.name, username_exists);
 
-            if (username_in_map) {
-                ae_map_remove(app->users.from_username, (*user)->data.name);
+            if (username_exists) {
+                ae_map_remove(app->users.from_username, ae_string_hash,
+                              ae_string_eq, (*user)->data.name);
             }
 
             ae_user_free(*user);
@@ -66,14 +69,14 @@ void ae_app_update(ae_app_t *app) {
     }
 
     /* Update users. */
-    ae_map_foreach(app->users.from_handle, i) {
-        ae_user_t *user = app->users.from_handle.vals[i];
 
-        ae_client_t *client;
-        ae_map_get(app->server.clients, user->handle, client);
-        assert(client);
+    ae_user_t **user;
 
-        ae_user_update(user, app, &client->in);
+    ae_map_foreach(app->users.from_handle, handle, user) {
+        ae_map_get(app->server.clients, ae_handle_hash, ae_handle_eq,
+                   (*user)->handle, client);
+
+        ae_user_update(*user, app, &client->in);
     }
 }
 

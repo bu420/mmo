@@ -234,7 +234,7 @@ typedef ae_arr(double) ae_doubles_t;
         ae_arr_free((M).bkts);                                                \
     } while (0)
 
-#define ae_map_get(M, HASH, EQ, K, V)                                         \
+#define ae_map_get_maybe_null(M, HASH, EQ, K, V)                              \
     do {                                                                      \
         (V)                  = NULL;                                          \
         size_t ae_uniq(hash) = HASH(&(K)) % ae_acap((M).bkts);                \
@@ -245,6 +245,19 @@ typedef ae_arr(double) ae_doubles_t;
                 break;                                                        \
             }                                                                 \
         }                                                                     \
+    } while (0)
+
+#define ae_map_get(M, HASH, EQ, K, V)                                         \
+    do {                                                                      \
+        ae_map_get_maybe_null(M, HASH, EQ, K, V);                             \
+        assert(V);                                                            \
+    } while (0)
+
+#define ae_map_contains(M, HASH, EQ, K, BOOL)                                 \
+    do {                                                                      \
+        void *ae_uniq(v);                                                     \
+        ae_map_get_maybe_null(M, HASH, EQ, K, ae_uniq(v));                    \
+        (BOOL) = ae_uniq(v) != NULL;                                          \
     } while (0)
 
 #define ae_map_set_no_rehash(M, CAP, HASH, EQ, K, V)                          \

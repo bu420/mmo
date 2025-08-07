@@ -240,9 +240,7 @@ no_events:
     ae_arr_free(polled_sockets);
 
     /* Send outgoing data to clients. */
-    ae_map_foreach(server->clients, i) {
-        ae_client_t *client = &server->clients.vals[i];
-
+    ae_map_foreach(server->clients, handle, client) {
         if (ae_alen(client->out) > 0) {
             ssize_t num_bytes_sent = send(client->conn.socket, client->out,
                                           ae_alen(client->out), 0);
@@ -256,8 +254,7 @@ no_events:
 
 void ae_server_remove_client(ae_server_t *server, ae_client_handle_t handle) {
     ae_client_t *client;
-    ae_map_get(server->clients, handle, client);
-    assert(client);
+    ae_map_get(server->clients, ae_handle_hash, ae_handle_eq, handle, client);
 
     char *goodbye = "\r\nGoodbye.\r\n";
     send(client->conn.socket, goodbye, strlen(goodbye), 0);
@@ -268,8 +265,7 @@ void ae_server_remove_client(ae_server_t *server, ae_client_handle_t handle) {
 void ae_server_send(ae_server_t *server, ae_client_handle_t handle,
                     const ae_bytes_t data) {
     ae_client_t *client;
-    ae_map_get(server->clients, handle, client);
-    assert(client);
+    ae_map_get(server->clients, ae_handle_hash, ae_handle_eq, handle, client);
 
     /* Append message to out stream. */
     ae_arr_append_n(client->out, ae_alen(data), data);
